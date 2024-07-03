@@ -127,7 +127,7 @@ def vis_keypoints_with_skeleton(image, kp, fname='/home/rui/Downloads/inftest0.p
 
     #     cv2.imwrite(fname, color)
     
-def get_keypoints2d_from_frame(frame_path=''):
+def get_keypoints2d_from_frame(frame_path='', add_visibility=False):
 
     # Extract sequence name and frame number
     seq_name, frame = os.path.split(frame_path)[-2:]
@@ -169,9 +169,14 @@ def get_keypoints2d_from_frame(frame_path=''):
     new_p2d[:, 1] = np.clip(p2d[:, 0], 0, 1919)  # Image width - 1
     new_p2d[:, 0] = np.clip(p2d[:, 1], 0, 1079)  # Image height - 1
 
+    if add_visibility:
+        # add visibility flag
+        visibility = np.ones((new_p2d.shape[0], 1))
+        new_p2d = np.hstack((new_p2d, visibility))
+    
     return new_p2d.astype(np.int32)
 
-def get_bbox_from_frame(frame_path='', list_out_format=False):
+def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     
     HAND_COLOR = np.array([100, 100, 100]) # Define the color for the hand mask in POV-Surgery
     

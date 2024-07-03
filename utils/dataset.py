@@ -16,11 +16,8 @@ class Dataset(Dataset):
         img_path = self.images[idx]
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         img = img / 255.0 # normalize values
-        keypoints2d = get_keypoints2d_from_frame(img_path)
-        # add visibility flag
-        visibility = np.ones((keypoints2d.shape[0], 1))
-        keypoints2d = np.hstack((keypoints2d, visibility))
-        bbox = get_bbox_from_frame(img_path, list_out_format=True)
+        keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=True)
+        bbox = get_bbox_from_frame(img_path, list_as_out_format=True)
         if self.transforms is not None:
             img = self.transforms(img)
             
