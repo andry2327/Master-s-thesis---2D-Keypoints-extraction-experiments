@@ -1,4 +1,4 @@
-# import pyrender DEBUG
+import pyrender
 import numpy as np
 import torch
 import cv2
@@ -7,7 +7,7 @@ import os
 from tqdm import tqdm
 import trimesh
 import matplotlib.pyplot as plt
-# import pandas DEBUG
+import pandas
 import numpy as np
 import pickle
 import mano
@@ -24,11 +24,11 @@ INFO_SHEET_PATH = join(DATASET_ROOT, 'POV_Surgery_info.csv')
 MANO_PATH = '/content/drive/MyDrive/Thesis/mano_v1_2/models/MANO_RIGHT.pkl'
 REPRO_DIR = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/repro_dir'
 ###################################################################################
-# info_sheet = pandas.read_csv(INFO_SHEET_PATH) DEBUG
+info_sheet = pandas.read_csv(INFO_SHEET_PATH) 
 SCALPE_OFFSET = [0.04805371, 0 ,0]
 DISKPLACER_OFFSET = [0, 0.34612157 ,0]
 FRIEM_OFFSET = [0, 0.1145 ,0]
-'''
+
 with torch.no_grad():
     rh_mano = mano.load(model_path=MANO_PATH,
                         model_type='mano',
@@ -40,7 +40,7 @@ with torch.no_grad():
 rh_faces = torch.from_numpy(rh_mano.faces.astype(np.int32)).view(1, -1, 3).to(device)
 
 if not os.path.exists(REPRO_DIR):
-    os.makedirs(REPRO_DIR)'''
+    os.makedirs(REPRO_DIR)
 
 def vis_keypoints_with_skeleton(image, kp, fname='/home/rui/Downloads/inftest0.png'):
     color = np.ones(shape=(1080, 1920, 3), dtype=np.int16)
