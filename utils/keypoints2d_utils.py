@@ -219,7 +219,7 @@ def get_bbox_from_frame(frame_path='', list_as_out_format=False):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
     
-    return list(bbox) if list_out_format else bbox
+    return list(bbox) if list_as_out_format else bbox
     
 def visualize_keypoints2d(frame_path, keypoints2d):
     
@@ -240,4 +240,4 @@ frame_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_
 # keypoints2d = get_keypoints2d_from_frame(frame_path=frame_path)
 # visualize_keypoints2d(frame_path, keypoints2d)
 
-print(get_bbox_from_frame(frame_path=frame_path))
+# print(get_bbox_from_frame(frame_path=frame_path))
