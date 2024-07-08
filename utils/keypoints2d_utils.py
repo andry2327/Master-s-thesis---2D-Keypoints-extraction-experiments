@@ -199,7 +199,8 @@ def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     coords = np.argwhere(mask) # Get the coordinates of the matching pixels
 
     if coords.size == 0:
-        print("No hand mask found in the image.")
+        # pass
+        print(f'No hand mask found in the image "{join(frame_path.split(os.sep)[-2], frame_path.split(os.sep)[-1])}".') # DEBUG
     else:
         # Get the bounding box coordinates
         y1, x1 = coords.min(axis=0)

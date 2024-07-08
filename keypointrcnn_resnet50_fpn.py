@@ -2,16 +2,19 @@
 
 import torch
 import torch.optim as optim
+import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.models.detection.keypoint_rcnn import keypointrcnn_resnet50_fpn, KeypointRCNN_ResNet50_FPN_Weights
 import os
 import numpy as np
 from utils.dataset import Dataset
+from torch.utils.data import Subset
 from tqdm import tqdm
 import pytz
 import logging
 import datetime
+from collections import defaultdict
 
 from functools import wraps
 
@@ -59,10 +62,11 @@ class KeypointRCNN:
         
     @capture_arguments
     def train(self, dataset_root, annot_root, num_epochs=10, batch_size=1, lr=0.02, step_size=120000, lr_step_gamma=0.1,
-              log_train_step=1, val_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction'):
+              log_train_step=1, val_step=1, checkpoint_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction'):
 
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
+            os.makedirs(os.path.join(output_folder, 'checkpoints'))
     
         """ Configure a log """
         # Create a new log file
@@ -95,9 +99,11 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
+        # trainset = Subset(trainset, list(range(1))) # DEBUG
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
+        # valset = Subset(valset, list(range(1))) # DEBUG
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         torch.cuda.empty_cache()
@@ -113,13 +119,14 @@ class KeypointRCNN:
         # scheduler.last_epoch = start
         
         # Training loop
+        min_total_loss = float('inf')
         for epoch in range(num_epochs):
             model.train()
             pbar = tqdm(desc=f'Epoch {epoch+1} - train: ', total=len(train_loader))
             for i, (images, targets) in enumerate(train_loader):
                 
                 images = list(image.to(device) for image in images)
-                # targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
                 
                 # Forward pass
                 loss_dict = model(images, targets)
@@ -133,11 +140,34 @@ class KeypointRCNN:
                 optimizer.step()
                 
                 if i % log_train_step == 0:
-                    logging.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Loss: {losses.item()}') # for log file
+                    losses_str = ', '.join([f"{k}: {v.item():.4f}" for k, v in loss_dict.items()])
+                    logging.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Losses: {losses_str}') # for log file
                 pbar.update(1)
+                
+            # Save best and last model checkpoints
+            if (epoch+1) % checkpoint_step == 0:
+                folder_model = os.path.join(output_folder, 'checkpoints')
+                torch.save(model.state_dict(), os.path.join(folder_model, f'model_last-{epoch+1}'))
+                if epoch+1 > 1:
+                    file_to_delete = [x for x in os.listdir(output_folder) if f'model_last-' in x and f'model_last-{epoch+1}' not in x][0]
+                    try:
+                        os.remove(os.path.join(output_folder, file_to_delete))
+                    except:
+                        pass
+                if losses.data < min_total_loss: 
+                    # Save best checkpoint
+                    torch.save(model.state_dict(), os.path.join(folder_model, f'model_best-{epoch+1}'))
+                    if epoch+1 > 1:
+                        file_to_delete = [x for x in os.listdir(output_folder) if f'model_best-' in x and f'model_best-{epoch+1}' not in x][0]
+                        try:
+                            os.remove(os.path.join(output_folder, file_to_delete))
+                        except:
+                            pass
+                    
 
             if (epoch+1) % val_step == 0:
                 
+                val_losses = {}
                 pbar = tqdm(desc=f'Epoch {epoch+1} - val: ', total=len(val_loader))
                 for i, (images, targets) in enumerate(val_loader):
                     
@@ -147,16 +177,25 @@ class KeypointRCNN:
                     # Forward pass
                     loss_dict = model(images, targets)
                     
-                    # Compute total loss
-                    val_losses = sum(loss for loss in loss_dict.values())
-                    
-                    line_str = f'Epoch {epoch+1}/{num_epochs} - val Loss: {val_losses.item()}'
-                    logging.info(line_str)
-                    print(line_str)
+                    # Accumulate losses
+                    for k, v in loss_dict.items():
+                        if k in val_losses.keys():
+                            val_losses[k] += v.item()
+                        else:
+                            val_losses[k] = v.item()
+
                     pbar.update(1)
-                                 
+                
+                for k in val_losses:
+                    val_losses[k] /= len(val_loader)            
+                losses_str = ', '.join([f"{k}: {v:.4f}" for k, v in val_losses.items()])
+                line_str = f'Epoch {epoch+1}/{num_epochs} - val Losses: {losses_str}'
+                logging.info(line_str)
+                print(line_str)
+            
             # Decay Learning Rate
-            scheduler.step()
+            scheduler.step()       
+            
                     
         print("Training complete!")
 
@@ -169,7 +208,8 @@ output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointR
 KeypointRCNN().train(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
-    num_epochs=10, batch_size=2, lr=0.02, step_size=120000, lr_step_gamma=0.1, log_train_step=1, val_step=1,
+    num_epochs=10, batch_size=1, lr=2e-5, step_size=120000, lr_step_gamma=0.1, log_train_step=1, val_step=1,
+    checkpoint_step=1,
     output_folder=output_folder
 )
 
