@@ -252,6 +252,10 @@ def compute_MPJPE(pred, target):
     pred: tensor of shape (N, 21, 3) - N sets of predicted keypoints
     target: tensor of shape (21, 3) - single set of ground truth keypoints
     """
+    
+    if target.numel() == 0: # if target is empty
+        return float('inf'), float('inf') 
+        
     N = pred.shape[0]
     
     # Expand target to match pred shape

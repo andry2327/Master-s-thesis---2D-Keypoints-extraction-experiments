@@ -212,7 +212,7 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         testset = Dataset(root=annot_root, model_name=self.model_name, load_set='test', transforms=transform)
-        # testset = Subset(testset, list(range(1))) # DEBUG
+        # testset = Subset(testset, list(range(3))) # DEBUG
         test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         ### Load model
@@ -234,7 +234,7 @@ class KeypointRCNN:
         if seq != '':
             print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
             
-        results_dict = {} # DEBUG
+        # results_dict = {} # DEBUG
         mpjpe_results = []
                 
         for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
@@ -242,15 +242,15 @@ class KeypointRCNN:
             # select specific sequence
             if seq != '':
                 if not any(seq in t['path'] for t in targets):
-                    continue 
+                    continue
             
             images = list(image.to(device) for image in images)
             
             results = model(images)
              
-            # save results and compute accuracy, errors
+            # Save results and compute MPJPE
             for res, t in zip(results, targets):
-                results_dict[t['path']] = res # DEBUG
+                # results_dict[t['path']] = res # DEBUG
                 sequence, frame = t['path'].split(os.sep)[-2:]
                 frame = frame.split('.')[0]
                 path_to_save_results = os.path.join(output_results, 'results', sequence)
@@ -271,11 +271,11 @@ class KeypointRCNN:
                                           output_results=path_to_save_visual)
         
         if seq != '': 
-            print(f'Average MPJPE on Test set: {np.mean(mpjpe_results)}')
+            print(f'Average MPJPE on sequence "{seq}": {np.mean(mpjpe_results):.4f}')
         else:
-            print(f'Average MPJPE on sequence "{seq}": {np.mean(mpjpe_results)}')
+            print(f'Average MPJPE on Test set: {np.mean(mpjpe_results):.4f}')
         
-        return results_dict, np.mean(mpjpe_results) # DEBUG
+        return np.ma.mean(np.ma.masked_array(mpjpe_results, np.isinf(mpjpe_results)))
         
 
 ##### DEBUG #####
@@ -297,7 +297,7 @@ KeypointRCNN().evaluate(
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',
     batch_size=1,
-    seq='/d_friem_1/',
+    seq='',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
     visualize=False
 )
