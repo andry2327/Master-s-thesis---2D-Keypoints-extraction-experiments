@@ -4,6 +4,7 @@ import numpy as np
 import os
 import cv2
 from utils.keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
+
 class Dataset(data.Dataset):
     def __init__(self, root, model_name='', load_set='train', transforms=None):
         self.root = root
@@ -38,6 +39,7 @@ class Dataset(data.Dataset):
         img = img.to(torch.float)
         
         target = {
+            'path': img_path,
             'boxes': bbox,
             'keypoints': keypoints2d,
             'labels': labels

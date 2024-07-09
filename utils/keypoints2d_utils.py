@@ -199,8 +199,8 @@ def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     coords = np.argwhere(mask) # Get the coordinates of the matching pixels
 
     if coords.size == 0:
-        # pass
-        print(f'No hand mask found in the image "{join(frame_path.split(os.sep)[-2], frame_path.split(os.sep)[-1])}".') # DEBUG
+        pass
+        # print(f'No hand mask found in the image "{join(frame_path.split(os.sep)[-2], frame_path.split(os.sep)[-1])}".') # DEBUG
     else:
         # Get the bounding box coordinates
         y1, x1 = coords.min(axis=0)
@@ -222,23 +222,37 @@ def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     
     return list(bbox) if list_as_out_format else bbox
     
-def visualize_keypoints2d(frame_path, keypoints2d):
+def visualize_keypoints2d(frame_path, keypoints2d, dataset_root='', output_results=''):
     
     seq_name, frame = frame_path.split(os.sep)[-2:]
     frame = os.path.splitext(frame)[0]  
-    image = cv2.imread(join(DATASET_ROOT, 'color', seq_name, f'{frame}.jpg'))
+    image = cv2.imread(join(dataset_root, 'color', seq_name, f'{frame}.jpg'))
     
     img_o = vis_keypoints_with_skeleton(image, keypoints2d)
     
-    if not os.path.exists(join(REPRO_DIR, seq_name)):
-        os.makedirs(join(REPRO_DIR, seq_name))
-    img_path = join(REPRO_DIR, seq_name, f'{frame}_kps2d_visual.jpg')
+    if not os.path.exists(join(output_results, seq_name)):
+        os.makedirs(join(output_results, seq_name))
+    img_path = join(output_results, seq_name, f'{frame}_kps2d_visual.jpg')
     cv2.imwrite(img_path, img_o)
     
     return img_o
 
-frame_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
+# frame_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
 # keypoints2d = get_keypoints2d_from_frame(frame_path=frame_path)
 # visualize_keypoints2d(frame_path, keypoints2d)
 
 # print(get_bbox_from_frame(frame_path=frame_path))
+
+# Compute Mean Per Joint Position Error (MPJPE)
+# MPJPE measures the average Euclidean distance between predicted joint locations 
+# and their corresponding ground truth positions. It provides a quantitative measure 
+# of how far off, on average, the predicted keypoints are from their true locations.
+def compute_MPJPE(pred, target):
+    """
+    pred: tensor of shape (21, 3) - predicted keypoints
+    target: tensor of shape (21, 3) - ground truth keypoints
+    visibility: tensor of shape (21,) - visibility flag for each keypoint
+    """
+    # Calculate Euclidean distance for each keypoint
+    distances = torch.norm(pred[:, :2] - target[:, :2], dim=1)
+    return distances.mean()

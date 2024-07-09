@@ -15,6 +15,8 @@ import pytz
 import logging
 import datetime
 from collections import defaultdict
+import pickle
+from utils.keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 
 from functools import wraps
 
@@ -199,18 +201,106 @@ class KeypointRCNN:
                     
         print("Training complete!")
 
+    def evaluate(self, dataset_root, annot_root='', model_path='', batch_size=1, seq='', output_results='', visualize=False):
+        
+        if not os.path.exists(output_results):
+            os.makedirs(output_results)
+        
+        """ load dataset """
+        
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        transform = transforms.Compose([transforms.ToTensor()])
+        
+        testset = Dataset(root=annot_root, model_name=self.model_name, load_set='test', transforms=transform)
+        # testset = Subset(testset, list(range(1))) # DEBUG
+        test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
+        
+        ### Load model
+        torch.cuda.empty_cache()
+        model = keypointrcnn_resnet50_fpn(weights=self.weights, num_classes=self.num_classes, num_keypoints=self.num_keypoints)
+        print('Keypoint RCNN model is loaded')
+        state_dict = torch.load(model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.to(device)
+        model = model.eval()
+        print(f'🟢 Model "{model_path.split(os.sep)[-2]}{os.sep}{model_path.split(os.sep)[-1]}" loaded')
+        
+        """ Evaluation """
+        
+        print(f'Results are saved in: \n\t{os.path.join(output_results, "results")}')
+        if visualize:
+            print(f'Visualizations are saved in: \n\t{os.path.join(output_results, "visualize")}')
+        
+        if seq != '':
+            print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
+            
+        results_dict = {} # DEBUG
+        mpjpe_results = []
+                
+        for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
+            
+            # select specific sequence
+            if seq != '':
+                for t in targets:
+                    if seq not in t['path']:
+                        continue
+            
+            images = list(image.to(device) for image in images)
+            
+            results = model(images)
+             
+            # save results and compute accuracy, errors
+            for res, t in zip(results, targets):
+                results_dict[t['path']] = res # DEBUG
+                sequence, frame = t['path'].split(os.sep)[-2:]
+                frame = frame.split('.')[0]
+                path_to_save_results = os.path.join(output_results, 'results', sequence)
+                if not os.path.exists(path_to_save_results):
+                    os.makedirs(path_to_save_results)
+                with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
+                    pickle.dump(res, f)
+                # compute MPJPE
+                mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
+                mpjpe_results.append(mpjpe)
+                
+                if visualize:
+                    path_to_save_visual = os.path.join(output_results, 'visualize')
+                    if not os.path.exists(path_to_save_visual):
+                        os.makedirs(path_to_save_visual)
+                    visualize_keypoints2d(t['path'], res['keypoints'], 
+                                          dataset_root=dataset_root, 
+                                          output_results=path_to_save_visual)
+        
+        if seq != '': 
+            print(f'Average MPJPE on Test set: {np.mean(mpjpe_results)}')
+        else:
+            print(f'Average MPJPE on sequence "{seq}": {np.mean(mpjpe_results)}')
+        
+        return results_dict, np.mean(mpjpe_results) # DEBUG
+        
+
 ##### DEBUG #####
 current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
 folder = f'Training-DEBUG--{current_timestamp}'
 output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'
 ##### DEBUG #####
 
-KeypointRCNN().train(
+'''KeypointRCNN().train(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     num_epochs=10, batch_size=1, lr=2e-5, step_size=120000, lr_step_gamma=0.1, log_train_step=1, val_step=1,
     checkpoint_step=1,
     output_folder=output_folder
+)'''
+
+KeypointRCNN().evaluate(
+    dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
+    annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
+    model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',
+    batch_size=1,
+    seq='',
+    output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
+    visualize=False
 )
 
 ##### DEBUG #####
