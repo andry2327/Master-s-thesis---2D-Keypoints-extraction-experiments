@@ -101,11 +101,11 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
-        # trainset = Subset(trainset, list(range(1))) # DEBUG
+        trainset = Subset(trainset, list(range(5))) # DEBUG
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
-        # valset = Subset(valset, list(range(1))) # DEBUG
+        valset = Subset(valset, list(range(2))) # DEBUG
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         torch.cuda.empty_cache()
@@ -128,7 +128,7 @@ class KeypointRCNN:
             for i, (images, targets) in enumerate(train_loader):
                 
                 images = list(image.to(device) for image in images)
-                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
                 
                 # Forward pass
                 loss_dict = model(images, targets)
@@ -284,15 +284,15 @@ folder = f'Training-DEBUG--{current_timestamp}'
 output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'
 ##### DEBUG #####
 
-'''KeypointRCNN().train(
+KeypointRCNN().train(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     num_epochs=10, batch_size=1, lr=2e-5, step_size=120000, lr_step_gamma=0.1, log_train_step=1, val_step=1,
     checkpoint_step=1,
     output_folder=output_folder
-)'''
+)
 
-KeypointRCNN().evaluate(
+'''KeypointRCNN().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',
@@ -300,7 +300,7 @@ KeypointRCNN().evaluate(
     seq='',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
     visualize=False
-)
+)'''
 
 ##### DEBUG #####
 
