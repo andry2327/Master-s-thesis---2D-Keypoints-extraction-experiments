@@ -174,7 +174,7 @@ class KeypointRCNN:
                 for i, (images, targets) in enumerate(val_loader):
                     
                     images = list(image.to(device) for image in images)
-                    targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                    targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
                     
                     # Forward pass
                     loss_dict = model(images, targets)
