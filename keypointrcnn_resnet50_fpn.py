@@ -151,16 +151,16 @@ class KeypointRCNN:
                 folder_model = os.path.join(output_folder, 'checkpoints')
                 torch.save(model.state_dict(), os.path.join(folder_model, f'model_last-{epoch+1}'))
                 if epoch+1 > 1:
-                    file_to_delete = [x for x in os.listdir(output_folder) if f'model_last-' in x and f'model_last-{epoch+1}' not in x][0]
+                    file_to_delete = [x for x in os.listdir(folder_model) if f'model_last-' in x and f'model_last-{epoch+1}' not in x][0]
                     try:
-                        os.remove(os.path.join(output_folder, file_to_delete))
+                        os.remove(os.path.join(folder_model, file_to_delete))
                     except:
                         pass
                 if losses.data < min_total_loss: 
                     # Save best checkpoint
                     torch.save(model.state_dict(), os.path.join(folder_model, f'model_best-{epoch+1}'))
                     if epoch+1 > 1:
-                        file_to_delete = [x for x in os.listdir(output_folder) if f'model_best-' in x and f'model_best-{epoch+1}' not in x][0]
+                        file_to_delete = [x for x in os.listdir(folder_model) if f'model_best-' in x and f'model_best-{epoch+1}' not in x][0]
                         try:
                             os.remove(os.path.join(output_folder, file_to_delete))
                         except:
