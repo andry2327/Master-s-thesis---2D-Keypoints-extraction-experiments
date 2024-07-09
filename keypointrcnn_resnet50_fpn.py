@@ -241,9 +241,8 @@ class KeypointRCNN:
             
             # select specific sequence
             if seq != '':
-                for t in targets:
-                    if seq not in t['path']:
-                        continue
+                if not any(seq in t['path'] for t in targets):
+                    continue 
             
             images = list(image.to(device) for image in images)
             
@@ -259,9 +258,9 @@ class KeypointRCNN:
                     os.makedirs(path_to_save_results)
                 with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
                     pickle.dump(res, f)
-                # compute MPJPE
-                mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
-                mpjpe_results.append(mpjpe)
+                # compute MPJPE                
+                avg_mpjpe, best_mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
+                mpjpe_results.append(avg_mpjpe)
                 
                 if visualize:
                     path_to_save_visual = os.path.join(output_results, 'visualize')
@@ -298,7 +297,7 @@ KeypointRCNN().evaluate(
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',
     batch_size=1,
-    seq='',
+    seq='/d_friem_1/',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
     visualize=False
 )

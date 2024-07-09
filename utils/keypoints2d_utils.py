@@ -249,10 +249,17 @@ def visualize_keypoints2d(frame_path, keypoints2d, dataset_root='', output_resul
 # of how far off, on average, the predicted keypoints are from their true locations.
 def compute_MPJPE(pred, target):
     """
-    pred: tensor of shape (21, 3) - predicted keypoints
-    target: tensor of shape (21, 3) - ground truth keypoints
-    visibility: tensor of shape (21,) - visibility flag for each keypoint
+    pred: tensor of shape (N, 21, 3) - N sets of predicted keypoints
+    target: tensor of shape (21, 3) - single set of ground truth keypoints
     """
-    # Calculate Euclidean distance for each keypoint
-    distances = torch.norm(pred[:, :2] - target[:, :2], dim=1)
-    return distances.mean()
+    N = pred.shape[0]
+    
+    # Expand target to match pred shape
+    target_expanded = target.expand(N, -1, -1)
+    
+    distances = torch.norm(pred[:, :, :2] - target_expanded[:, :, :2], dim=2)
+    avg_mpjpe_per_pred = distances.mean(dim=1)
+    best_mpjpe, _ = avg_mpjpe_per_pred.min(dim=0)
+    avg_mpjpe = avg_mpjpe_per_pred.mean()
+
+    return avg_mpjpe.detach().cpu().numpy(), best_mpjpe.detach().cpu().numpy()
