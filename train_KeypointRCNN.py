@@ -18,6 +18,7 @@ parser.add_argument('--log_train_step', type=int, default=1, help='Logging inter
 parser.add_argument('--val_step', type=int, default=1, help='Validation interval')
 parser.add_argument('--checkpoint_step', type=int, default=1, help='Checkpoint save interval')
 parser.add_argument('--output_folder', type=str, required=True, help='Output folder for logs and checkpoints')
+parser.add_argument('--use_autocast', action='store_true', help='Flag to enable mixed precision training')
 args = parser.parse_args()
 
 # # Generate a timestamp for logging purposes
@@ -38,5 +39,6 @@ keypoint_rcnn_trainer.train(
     log_train_step=args.log_train_step,
     val_step=args.val_step,
     checkpoint_step=args.checkpoint_step,
-    output_folder=args.output_folder
+    output_folder=args.output_folder,
+    use_autocast=args.use_autocast
 )

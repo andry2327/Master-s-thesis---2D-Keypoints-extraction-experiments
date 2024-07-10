@@ -64,12 +64,13 @@ class KeypointRCNN:
         
     @capture_arguments
     def train(self, dataset_root, annot_root, num_epochs=10, batch_size=1, lr=0.02, step_size=120000, lr_step_gamma=0.1,
-              log_train_step=1, val_step=1, checkpoint_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction'):
+              log_train_step=1, val_step=1, checkpoint_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction',
+              use_autocast=False):
 
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
             os.makedirs(os.path.join(output_folder, 'checkpoints'))
-    
+
         """ Configure a log """
         # Create a new log file
         filename_log = os.path.join(output_folder, f'log_{output_folder.rpartition(os.sep)[-1]}.txt')
@@ -94,7 +95,7 @@ class KeypointRCNN:
         print('\n')
 
         print(f'🟢 Logging info in "{filename_log}"')
-    
+
         """ load dataset """
         
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -102,11 +103,13 @@ class KeypointRCNN:
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
         trainset = Subset(trainset, list(range(5))) # DEBUG
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
+                                                collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
         valset = Subset(valset, list(range(2))) # DEBUG
-        val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
+        val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
+                                                collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         torch.cuda.empty_cache()
         model = keypointrcnn_resnet50_fpn(weights=self.weights, num_classes=self.num_classes, num_keypoints=self.num_keypoints)
@@ -118,8 +121,10 @@ class KeypointRCNN:
             
         optimizer = optim.Adam(model.parameters(), lr=lr)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size//len(train_loader), gamma=lr_step_gamma)
-        # scheduler.last_epoch = start
-        
+
+        if use_autocast:
+            scaler = torch.cuda.amp.GradScaler()
+
         # Training loop
         min_total_loss = float('inf')
         for epoch in range(num_epochs):
@@ -131,26 +136,37 @@ class KeypointRCNN:
                 targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
                 
                 # Forward pass
-                loss_dict = model(images, targets)
-                
-                # Compute total loss
-                losses = sum(loss for loss in loss_dict.values())
-                
-                # Backward pass and optimization
-                optimizer.zero_grad()
-                losses.backward()
-                optimizer.step()
+                if use_autocast:
+                    with torch.cuda.amp.autocast():
+                        loss_dict = model(images, targets)
+                        losses = sum(loss for loss in loss_dict.values())
+                    
+                    # Backward pass and optimization
+                    optimizer.zero_grad()
+                    scaler.scale(losses).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    # Forward pass
+                    loss_dict = model(images, targets)
+                    
+                    # Compute total loss
+                    losses = sum(loss for loss in loss_dict.values())
+                    
+                    # Backward pass and optimization
+                    optimizer.zero_grad()
+                    losses.backward()
+                    optimizer.step()
                 
                 if i % log_train_step == 0:
                     losses_str = ', '.join([f"{k}: {v.item():.4f}" for k, v in loss_dict.items()])
-                    logging.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Losses: {losses_str}') # for log file
-                
-                # Memory optimization
-                del images, targets, loss_dict
-                torch.cuda.empty_cache()  
-                      
+                    logger.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Losses: {losses_str}') # for log file
                 pbar.update(1)
                 
+                # Clear unused variables
+                del images, targets, loss_dict
+                torch.cuda.empty_cache()
+            
             # Save best and last model checkpoints
             if (epoch+1) % checkpoint_step == 0:
                 folder_model = os.path.join(output_folder, 'checkpoints')
@@ -182,7 +198,11 @@ class KeypointRCNN:
                     targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
                     
                     # Forward pass
-                    loss_dict = model(images, targets)
+                    if use_autocast:
+                        with torch.cuda.amp.autocast():
+                            loss_dict = model(images, targets)
+                    else:
+                        loss_dict = model(images, targets)
                     
                     # Accumulate losses
                     for k, v in loss_dict.items():
@@ -202,8 +222,7 @@ class KeypointRCNN:
             
             # Decay Learning Rate
             scheduler.step()       
-            
-                    
+
         print("Training complete!")
 
     def evaluate(self, dataset_root, annot_root='', model_path='', batch_size=1, seq='', output_results='', visualize=False):
