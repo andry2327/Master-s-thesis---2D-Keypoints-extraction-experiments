@@ -102,7 +102,7 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
-        trainset = Subset(trainset, list(range(5))) # DEBUG
+        trainset = Subset(trainset, list(range(3))) # DEBUG
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
@@ -218,12 +218,12 @@ class KeypointRCNN:
                 losses_str = ', '.join([f"{k}: {v:.4f}" for k, v in val_losses.items()])
                 line_str = f'Epoch {epoch+1}/{num_epochs} - val Losses: {losses_str}'
                 logging.info(line_str)
-                print(line_str)
+                print('\n'+line_str)
             
             # Decay Learning Rate
             scheduler.step()       
 
-        print("Training complete!")
+        print("\nTraining complete!")
 
     def evaluate(self, dataset_root, annot_root='', model_path='', batch_size=1, seq='', output_results='', visualize=False):
         

@@ -28,6 +28,7 @@ args = parser.parse_args()
 
 # Initialize and train KeypointRCNN
 keypoint_rcnn_trainer = KeypointRCNN()
+
 keypoint_rcnn_trainer.train(
     dataset_root=args.dataset_root,
     annot_root=args.annot_root,
