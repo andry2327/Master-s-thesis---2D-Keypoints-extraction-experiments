@@ -303,9 +303,9 @@ class KeypointRCNN:
         avg_rpjpe_result = np.ma.mean(np.ma.masked_array(mpjpe_results, np.isinf(mpjpe_results)))
         
         if seq != 'NO_SEQ': 
-            print(f'Average MPJPE on sequence "{seq}": {avg_rpjpe_result:.4f}')
+            print(f'🟢 Average MPJPE on sequence "{seq}": {avg_rpjpe_result:.4f}')
         else:
-            print(f'Average MPJPE on Test set: {avg_rpjpe_result:.4f}')
+            print(f'🟢 Average MPJPE on Test set: {avg_rpjpe_result:.4f}')
         
         return avg_rpjpe_result
         
