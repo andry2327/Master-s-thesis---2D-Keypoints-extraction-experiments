@@ -146,7 +146,7 @@ class KeypointRCNN:
                     logging.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Losses: {losses_str}') # for log file
                 
                 # Memory optimization
-                del images, targets, loss_dict, losses
+                del images, targets, loss_dict
                 torch.cuda.empty_cache()  
                       
                 pbar.update(1)
