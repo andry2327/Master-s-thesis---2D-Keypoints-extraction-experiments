@@ -102,11 +102,11 @@ class KeypointRCNN:
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
         trainset = Subset(trainset, list(range(5))) # DEBUG
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
         valset = Subset(valset, list(range(2))) # DEBUG
-        val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
+        val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         torch.cuda.empty_cache()
         model = keypointrcnn_resnet50_fpn(weights=self.weights, num_classes=self.num_classes, num_keypoints=self.num_keypoints)
@@ -144,6 +144,11 @@ class KeypointRCNN:
                 if i % log_train_step == 0:
                     losses_str = ', '.join([f"{k}: {v.item():.4f}" for k, v in loss_dict.items()])
                     logging.info(f'[Epoch {epoch+1}/{num_epochs}, Processed data {i+1}/{len(train_loader)}] Losses: {losses_str}') # for log file
+                
+                # Memory optimization
+                del images, targets, loss_dict, losses
+                torch.cuda.empty_cache()  
+                      
                 pbar.update(1)
                 
             # Save best and last model checkpoints
