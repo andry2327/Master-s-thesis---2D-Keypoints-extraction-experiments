@@ -253,7 +253,10 @@ def compute_MPJPE(pred, target):
     target: tensor of shape (21, 3) - single set of ground truth keypoints
     """
     
-    if target.numel() == 0: # if target is empty
+    if pred.numel() == 0 and target.numel() == 0:
+        return np.array(0), np.array(0)
+    
+    if target.numel() == 0 or pred.numel() == 0: # if target is empty
         return float('inf'), float('inf') 
         
     N = pred.shape[0]
@@ -263,7 +266,9 @@ def compute_MPJPE(pred, target):
     
     distances = torch.norm(pred[:, :, :2] - target_expanded[:, :, :2], dim=2)
     avg_mpjpe_per_pred = distances.mean(dim=1)
+    # if avg_mpjpe_per_pred.numel() == 0:
+    #     return float('inf'), float('inf') 
     best_mpjpe, _ = avg_mpjpe_per_pred.min(dim=0)
     avg_mpjpe = avg_mpjpe_per_pred.mean()
-
+    
     return avg_mpjpe.detach().cpu().numpy(), best_mpjpe.detach().cpu().numpy()

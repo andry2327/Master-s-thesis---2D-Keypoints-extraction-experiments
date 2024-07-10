@@ -205,10 +205,10 @@ def main():
     parser.add_argument('--output_path', required=False, type=str, help='Path where to save plots')
     args = parser.parse_args()
     
-    # plot_losses(args.log_file, args.output_path)
-    file = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--09-07-2024_17-09/log_Training-DEBUG--09-07-2024_17-09.txt'
-    out_path = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--09-07-2024_17-09'
-    plot_losses(file, out_path)
+    plot_losses(args.log_file, args.output_path)
+    # file = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--09-07-2024_17-09/log_Training-DEBUG--09-07-2024_17-09.txt'
+    # out_path = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--09-07-2024_17-09'
+    # plot_losses(file, out_path)
 
 if __name__ == "__main__":
     main()

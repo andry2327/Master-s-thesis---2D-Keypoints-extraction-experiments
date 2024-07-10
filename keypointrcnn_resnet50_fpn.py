@@ -70,6 +70,8 @@ class KeypointRCNN:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
             os.makedirs(os.path.join(output_folder, 'checkpoints'))
+            
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
         """ Configure a log """
         # Create a new log file
@@ -91,23 +93,23 @@ class KeypointRCNN:
         logging.info('args:')
         for k, v in self.train.captured_kwargs.items():
             logging.info(f'\t{k}: {v}')
+        logging.info(f'\tdevice: {device}')
         logging.info('--'*50) 
         print('\n')
 
-        print(f'🟢 Logging info in "{filename_log}"')
+        print(f'🟢 Logging info in "{filename_log}"\n')
 
         """ load dataset """
         
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
-        trainset = Subset(trainset, list(range(3))) # DEBUG
+        # trainset = Subset(trainset, list(range(5))) # DEBUG
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
-        valset = Subset(valset, list(range(2))) # DEBUG
+        # valset = Subset(valset, list(range(2))) # DEBUG
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
@@ -166,6 +168,7 @@ class KeypointRCNN:
                 # Clear unused variables
                 del images, targets, loss_dict
                 torch.cuda.empty_cache()
+            pbar.close()
             
             # Save best and last model checkpoints
             if (epoch+1) % checkpoint_step == 0:
@@ -183,7 +186,7 @@ class KeypointRCNN:
                     if epoch+1 > 1:
                         file_to_delete = [x for x in os.listdir(folder_model) if f'model_best-' in x and f'model_best-{epoch+1}' not in x][0]
                         try:
-                            os.remove(os.path.join(output_folder, file_to_delete))
+                            os.remove(os.path.join(folder_model, file_to_delete))
                         except:
                             pass
                     
@@ -212,18 +215,19 @@ class KeypointRCNN:
                             val_losses[k] = v.item()
 
                     pbar.update(1)
+                pbar.close()
                 
                 for k in val_losses:
                     val_losses[k] /= len(val_loader)            
                 losses_str = ', '.join([f"{k}: {v:.4f}" for k, v in val_losses.items()])
                 line_str = f'Epoch {epoch+1}/{num_epochs} - val Losses: {losses_str}'
                 logging.info(line_str)
-                print('\n'+line_str)
+                print(line_str)
             
             # Decay Learning Rate
             scheduler.step()       
 
-        print("\nTraining complete!")
+        print("\n🟢 Training complete!")
 
     def evaluate(self, dataset_root, annot_root='', model_path='', batch_size=1, seq='', output_results='', visualize=False):
         
@@ -236,7 +240,7 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         testset = Dataset(root=annot_root, model_name=self.model_name, load_set='test', transforms=transform)
-        # testset = Subset(testset, list(range(3))) # DEBUG
+        # testset = Subset(testset, list(range(100))) # DEBUG
         test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
         ### Load model
@@ -251,11 +255,11 @@ class KeypointRCNN:
         
         """ Evaluation """
         
-        print(f'Results are saved in: \n\t{os.path.join(output_results, "results")}')
+        print(f'Results are saved in: \n{os.path.join(output_results, "results")}')
         if visualize:
-            print(f'Visualizations are saved in: \n\t{os.path.join(output_results, "visualize")}')
+            print(f'Visualizations are saved in: \n{os.path.join(output_results, "visualize")}')
         
-        if seq != '':
+        if seq != 'NO_SEQ':
             print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
             
         # results_dict = {} # DEBUG
@@ -264,7 +268,7 @@ class KeypointRCNN:
         for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
             
             # select specific sequence
-            if seq != '':
+            if seq != 'NO_SEQ':
                 if not any(seq in t['path'] for t in targets):
                     continue
             
@@ -282,8 +286,10 @@ class KeypointRCNN:
                     os.makedirs(path_to_save_results)
                 with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
                     pickle.dump(res, f)
-                # compute MPJPE                
+                # compute MPJPE               
+                print(f'pred.shape = {res["keypoints"].shape}: ', end = '') # DEBUG
                 avg_mpjpe, best_mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
+                print(f'avg_mpjpe {avg_mpjpe}, best_mpjpe {best_mpjpe}') # DEBUG
                 mpjpe_results.append(avg_mpjpe)
                 
                 if visualize:
@@ -294,27 +300,29 @@ class KeypointRCNN:
                                           dataset_root=dataset_root, 
                                           output_results=path_to_save_visual)
         
-        if seq != '': 
-            print(f'Average MPJPE on sequence "{seq}": {np.mean(mpjpe_results):.4f}')
+        avg_rpjpe_result = np.ma.mean(np.ma.masked_array(mpjpe_results, np.isinf(mpjpe_results)))
+        
+        if seq != 'NO_SEQ': 
+            print(f'Average MPJPE on sequence "{seq}": {avg_rpjpe_result:.4f}')
         else:
-            print(f'Average MPJPE on Test set: {np.mean(mpjpe_results):.4f}')
+            print(f'Average MPJPE on Test set: {avg_rpjpe_result:.4f}')
         
-        return np.ma.mean(np.ma.masked_array(mpjpe_results, np.isinf(mpjpe_results)))
+        return avg_rpjpe_result
         
 
 ##### DEBUG #####
-current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
+'''current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
 folder = f'Training-DEBUG--{current_timestamp}'
-output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'
+output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'''
 ##### DEBUG #####
 
-KeypointRCNN().train(
+'''KeypointRCNN().train(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     num_epochs=10, batch_size=1, lr=2e-5, step_size=120000, lr_step_gamma=0.1, log_train_step=1, val_step=1,
     checkpoint_step=1,
     output_folder=output_folder
-)
+)'''
 
 '''KeypointRCNN().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
