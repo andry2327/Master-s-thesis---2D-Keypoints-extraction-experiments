@@ -1,50 +1,68 @@
-import numpy as np
+# https://docs.ultralytics.com/tasks/pose/#models
+
+import torch
+import torch.optim as optim
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+from torchvision.models.detection.keypoint_rcnn import keypointrcnn_resnet50_fpn, KeypointRCNN_ResNet50_FPN_Weights
 import os
-import cv2
-from utils.keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
+import numpy as np
+from utils.dataset import Dataset
+from torch.utils.data import Subset
+from tqdm import tqdm
+import pytz
+import logging
+import datetime
+from collections import defaultdict
+import pickle
+from utils.keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 
-''' UTILS to create annotations in YOLO format, for POV-Surgery dataset'''
+from functools import wraps
 
-# YOLO requires annotations in .txt, in a specific formatting:
-# https://docs.ultralytics.com/it/datasets/pose/
-def img_path_to_txt_annot(img_path, img_dimensions=(1920, 1080)):
-    
-    OBJ_CLASS = 1 # 1: hand object
-    BACKGROUND_CLASS = 0 # 1: background
-    
-    img_width, img_height = img_dimensions
-    
-    sequence, frame = img_path.split(os.sep)[-2:]
-    frame = frame.split('.')[0]
-    
-    line_str = ''
-    
-    # img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-    keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=False)
-    bbox = get_bbox_from_frame(img_path, list_as_out_format=False)
+def capture_arguments(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        wrapper.captured_args = args
+        wrapper.captured_kwargs = kwargs
+        print("Positional arguments:", args)
+        print("Keyword arguments:", kwargs)
+        return func(self, *args, **kwargs)
+    wrapper.captured_args = ()
+    wrapper.captured_kwargs = {}
+    return wrapper
 
-    if bbox == [None]*4:
-        line_str += f'{BACKGROUND_CLASS}'
-    else:
-        x_center, y_center = (bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2
-        x_center, y_center = x_center/img_width, y_center/img_height
+def povsurgery_collate_fn(batch):
+    """
+    Custom collate function for DataLoader.
+    Args:
+        batch (list): List of tuples (image, target_dict).
+                      image: Tensor containing an image.
+                      target_dict: Dictionary containing target annotations.
+
+    Returns:
+        tuple: Tuple containing:
+            - images (Tensor): Tensor containing batch_size images.
+            - targets (list): List of length batch_size, each element is a target dictionary.
+    """
+    images = [item[0] for item in batch]  # Extract images from each tuple
+    targets = [item[1] for item in batch]  # Extract targets from each tuple
+
+    # Stack images into a single tensor
+    images = torch.stack(images, dim=0)
+
+    return images, targets
+
+class YOLO_Pose:
+    
+    def __init__(self, weights=None) -> None:
+        self.weights = weights
+        self.num_classes = 2
+        self.num_keypoints = 21
+        self.model_name = 'YOLO_pose'
         
-        obj_width, obj_height = abs(bbox[0]-bbox[2])/img_width, abs(bbox[1]-bbox[3])/img_height 
-        
-        line_str += f'{OBJ_CLASS} {x_center} {y_center} {obj_width} {obj_height}'
-        
-        # Add 2D keypoints
-        for py, px in keypoints2d:
-            line_str += f' {px/img_width} {py/img_height}'
-
-    return line_str
-    
-    
-
-##### DEBUG #####
-img_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
-##### DEBUG #####
-
-res = img_path_to_txt_annot(img_path)
-print(res)
-##### DEBUG #####
+    @capture_arguments
+    def train(self, dataset_root, annot_root, num_epochs=10, batch_size=1, lr=0.02, step_size=120000, lr_step_gamma=0.1,
+              log_train_step=1, val_step=1, checkpoint_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction',
+              use_autocast=False):
+        pass
