@@ -272,3 +272,7 @@ def compute_MPJPE(pred, target):
     avg_mpjpe = avg_mpjpe_per_pred.mean()
     
     return avg_mpjpe.detach().cpu().numpy(), best_mpjpe.detach().cpu().numpy()
+
+
+fp = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
+kps = get_keypoints2d_from_frame(fp, add_visibility=True)

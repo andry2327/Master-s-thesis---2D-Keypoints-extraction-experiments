@@ -15,7 +15,7 @@ class Dataset(data.Dataset):
     def __getitem__(self, idx):
         img_path = self.images[idx]
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-        keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=True)
+        keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=True) # format [y, x, visibility]
         bbox = get_bbox_from_frame(img_path, list_as_out_format=True)
         labels = torch.tensor([1], dtype=torch.int64)
         
@@ -31,8 +31,10 @@ class Dataset(data.Dataset):
             else:
                 keypoints2d = torch.tensor(keypoints2d, dtype=torch.float).unsqueeze(0)
                 bbox = torch.tensor(bbox, dtype=torch.float).unsqueeze(0)
-                keypoints2d[:, :, 0] = keypoints2d[:, :, 0] / img_height
-                keypoints2d[:, :, 1] = keypoints2d[:, :, 1] / img_width   
+                # switch x and y position and normalize
+                keypoints2d[:, :, [0, 1]] = keypoints2d[:, :, [1, 0]]
+                keypoints2d[:, :, 0] = keypoints2d[:, :, 0] / img_width
+                keypoints2d[:, :, 1] = keypoints2d[:, :, 1] / img_height 
         
         if self.transforms is not None:
             img = self.transforms(img) # to tensor, from shape (H, W, C) -> (C, H, W)
