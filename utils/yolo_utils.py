@@ -4,6 +4,7 @@ import os
 import cv2
 from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
 from tqdm import tqdm
+import shutil
 
 ''' UTILS to create annotations in YOLO format, for POV-Surgery dataset '''
 
@@ -102,37 +103,34 @@ def create_annotations(dataset_root, annot_path):
         pbar.close()
     print(f'\n🟢 Annotations saved in {annot_path}')
     
-def create_images_shortcut(dataset_root, images_shortcut_path):
-    
+def copy_images(dataset_root, images_yolo_path):
+ 
     INFO_SHEET_PATH = os.path.join(dataset_root, 'POV_Surgery_info.csv')
     INFO_SHEET = pd.read_csv(INFO_SHEET_PATH)
         
-    TRAIN_IMAGES_PATH = os.path.join(images_shortcut_path, 'train')
-    VAL_IMAGES_PATH = os.path.join(images_shortcut_path, 'val')
+    TRAIN_IMAGES_PATH = os.path.join(images_yolo_path, 'train')
+    VAL_IMAGES_PATH = os.path.join(images_yolo_path, 'val')
     
     IMAGES_PATH = os.path.join(dataset_root, 'color')
     
     # Create TRAINING images shortcuts
     print('🟢 Creating TRAINING images shortcuts ...')
-    for i_seq, sequence in enumerate(TRAIN_SEQUENCES):
+    '''for i_seq, sequence in enumerate(TRAIN_SEQUENCES):
         
         frame_start = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'start_frame'].values)
         frame_end = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'end_frame'].values)
         
-        pbar = tqdm(desc=f'Seq {i_seq+1}/{len(TRAIN_SEQUENCES)} - {sequence}: ', total=len(list(range(frame_start, frame_end+1))))
+        pbar = tqdm(desc=f'Copying seq {i_seq+1}/{len(TRAIN_SEQUENCES)} - {sequence}: ', total=len(list(range(frame_start, frame_end+1))))
         for i in range(frame_start, frame_end+1):
             frame_id = str(i).zfill(5)
             source_image_path = os.path.join(IMAGES_PATH, sequence, f'{frame_id}.jpg')
-            shortcut_path = os.path.join(TRAIN_IMAGES_PATH, f'{sequence}_{frame_id}.jpg')
-            if os.path.exists(shortcut_path):
-                continue # skip annotations already created
+            frame_yolo_path = os.path.join(TRAIN_IMAGES_PATH, f'{sequence}_{frame_id}.jpg')
+            if os.path.exists(frame_yolo_path):
+                continue # skip if already created
             else:
-                try:
-                    os.symlink(source_image_path, shortcut_path)
-                except Exception as e:
-                    print(f"Error creating shortcut: {e}")
+                shutil.copy(source_image_path, frame_yolo_path)
             pbar.update(1)
-        pbar.close()
+        pbar.close()'''
     print()
     # Create VALIDATION images shortcuts
     print('🟢 Creating VALIDATION images shortcuts ...')
@@ -141,31 +139,29 @@ def create_images_shortcut(dataset_root, images_shortcut_path):
         frame_start = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'start_frame'].values)
         frame_end = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'end_frame'].values)
         
-        pbar = tqdm(desc=f'Seq {i_seq+1}/{len(VAL_SEQUENCES)} - {sequence}: ', total=len(list(range(frame_start, frame_end+1))))
+        pbar = tqdm(desc=f'Copying seq {i_seq+1}/{len(VAL_SEQUENCES)} - {sequence}: ', total=len(list(range(frame_start, frame_end+1))))
         for i in range(frame_start, frame_end+1):
             frame_id = str(i).zfill(5)
             source_image_path = os.path.join(IMAGES_PATH, sequence, f'{frame_id}.jpg')
-            shortcut_path = os.path.join(VAL_IMAGES_PATH, f'{sequence}_{frame_id}.jpg')
-            if os.path.exists(shortcut_path):
-                continue # skip annotations already created
+            frame_yolo_path = os.path.join(VAL_IMAGES_PATH, f'{sequence}_{frame_id}.jpg')
+            if os.path.exists(frame_yolo_path):
+                continue # skip if already created
             else:
-                try:
-                    os.symlink(source_image_path, shortcut_path)
-                except Exception as e:
-                    print(f"Error creating shortcut: {e}")
+                shutil.copy(source_image_path, frame_yolo_path)
             pbar.update(1)
         pbar.close()
-    print(f'\n🟢 Annotations saved in {annot_path}')
+    print(f'\n🟢 Images for YOLO format saved in {annot_path}')
 
 ##### DEBUG #####
 img_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
 dataset_root = '/content/drive/MyDrive/Thesis/POV_Surgery_data'
 annot_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/labels'
-img_shortcuts_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/images'
+images_yolo_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/images'
 
 ##### DEBUG #####
 
 # res = img_path_to_str_annot(img_path)
 # create_annotations(dataset_root, annot_path)
-create_images_shortcut(dataset_root, img_shortcuts_path)
+copy_images(dataset_root, images_yolo_path)
+
 ##### DEBUG #####
