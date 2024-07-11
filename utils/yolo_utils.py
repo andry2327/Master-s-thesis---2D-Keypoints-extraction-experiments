@@ -115,7 +115,7 @@ def copy_images(dataset_root, images_yolo_path):
     
     # Create TRAINING images shortcuts
     print('🟢 Creating TRAINING images shortcuts ...')
-    '''for i_seq, sequence in enumerate(TRAIN_SEQUENCES):
+    for i_seq, sequence in enumerate(TRAIN_SEQUENCES):
         
         frame_start = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'start_frame'].values)
         frame_end = int(INFO_SHEET.loc[INFO_SHEET['OUT_seq'] == sequence, 'end_frame'].values)
@@ -130,7 +130,7 @@ def copy_images(dataset_root, images_yolo_path):
             else:
                 shutil.copy(source_image_path, frame_yolo_path)
             pbar.update(1)
-        pbar.close()'''
+        pbar.close()
     print()
     # Create VALIDATION images shortcuts
     print('🟢 Creating VALIDATION images shortcuts ...')
