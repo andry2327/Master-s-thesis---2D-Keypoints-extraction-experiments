@@ -311,9 +311,11 @@ class KeypointRCNN:
         
 
 ##### DEBUG #####
-'''current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
+'''
+current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
 folder = f'Training-DEBUG--{current_timestamp}'
-output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'''
+output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/{folder}'
+'''
 ##### DEBUG #####
 
 '''KeypointRCNN().train(
@@ -323,8 +325,8 @@ output_folder = f'/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointR
     checkpoint_step=1,
     output_folder=output_folder
 )'''
-
-'''KeypointRCNN().evaluate(
+'''
+KeypointRCNN().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',

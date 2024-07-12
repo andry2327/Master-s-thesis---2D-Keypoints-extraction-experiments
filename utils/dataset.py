@@ -31,10 +31,10 @@ class Dataset(data.Dataset):
             else:
                 keypoints2d = torch.tensor(keypoints2d, dtype=torch.float).unsqueeze(0)
                 bbox = torch.tensor(bbox, dtype=torch.float).unsqueeze(0)
-                # switch x and y position and normalize
+                # switch x, y position and normalize
                 keypoints2d[:, :, [0, 1]] = keypoints2d[:, :, [1, 0]]
-                keypoints2d[:, :, 0] = keypoints2d[:, :, 0] / img_width
-                keypoints2d[:, :, 1] = keypoints2d[:, :, 1] / img_height 
+                keypoints2d[:, :, 0] = keypoints2d[:, :, 0] #/ img_width
+                keypoints2d[:, :, 1] = keypoints2d[:, :, 1] #/ img_height 
         
         if self.transforms is not None:
             img = self.transforms(img) # to tensor, from shape (H, W, C) -> (C, H, W)
