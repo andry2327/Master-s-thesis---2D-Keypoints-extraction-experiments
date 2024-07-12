@@ -334,7 +334,8 @@ KeypointRCNN().evaluate(
     seq='',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
     visualize=False
-)'''
+)
+'''
 
 ##### DEBUG #####
 

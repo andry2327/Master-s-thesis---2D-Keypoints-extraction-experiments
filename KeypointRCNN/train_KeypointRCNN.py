@@ -6,6 +6,7 @@ import pytz
 from keypointrcnn_resnet50_fpn import KeypointRCNN
 from torchvision.models.detection.keypoint_rcnn import KeypointRCNN_ResNet50_FPN_Weights
 
+
 # Argument parsing
 parser = argparse.ArgumentParser(description='Train Keypoint RCNN model')
 parser.add_argument('--dataset_root', type=str, required=True, help='Root directory of the dataset')
