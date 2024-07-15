@@ -46,7 +46,7 @@ class YOLO_Pose:
     
     # https://docs.ultralytics.com/modes/train for train() parameters explanation
     @capture_arguments
-    def train(self, dataset_config, model_config,
+    def train(self, dataset_config, model_config_folder, model_config,
               num_epochs=10, 
               time=None, # Maximum training time in hours. If set, this overrides the epochs argument, allowing training to automatically stop after the specified duration. Useful for time-constrained training scenarios.
               batch_size=1, 
@@ -58,6 +58,7 @@ class YOLO_Pose:
               training_run_folder_name=None, # Name of the training run. Used for creating a subdirectory within the project folder, where training logs and outputs are stored.
               verbose=False, # Enables verbose output during training, providing detailed logs and progress updates. Useful for debugging and closely monitoring the training process.
               use_autocast=True, # Enables Automatic Mixed Precision (AMP) training, reducing memory usage and possibly speeding up training with minimal impact on accuracy.
+              fraction_sample_dtataset = 1, # Specifies the fraction of the dataset to use for training. Allows for training on a subset of the full dataset, useful for experiments or when resources are limited.
               lr=0.01, # Initial learning rate (i.e. SGD=1E-2, Adam=1E-3) . Adjusting this value is crucial for the optimization process, influencing how rapidly model weights are updated.
               lrf=0.01, # Final learning rate as a fraction of the initial rate = (lr0 * lrf), used in conjunction with schedulers to adjust the learning rate over time.
               generate_plots=False # Generates and saves plots of training and validation metrics, as well as prediction examples, providing visual insights into model performance and learning progression.
@@ -97,7 +98,8 @@ class YOLO_Pose:
         
         """ Model Loading """
         
-        scale = {
+        # https://docs.ultralytics.com/tasks/pose/ Models section
+        model_scale = {
             'small': 's',
             'nano': 'n',
             'medium': 'm',
@@ -106,13 +108,27 @@ class YOLO_Pose:
         }
 
         # Load model: https://github.com/orgs/ultralytics/discussions/10211#discussioncomment-9182568
-        config_folder = '/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config
-        model = YOLO(os.path.join(config_folder, f'yolov8{scale[model_type]}-pose.yaml')) # TODO
-        print(model) # DEBUG
+        model = YOLO(os.path.join(model_config_folder, f'yolov8{model_scale[model_config]}-pose.yaml')) # TODO
 
         # Train the model
-        results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device=device)
-        
+        results = model.train(data=dataset_config, 
+                              epochs=num_epochs, 
+                              time=time,
+                              batch=batch_size,
+                              imgsz=image_size,
+                              save=save,
+                              save_period=checkpoint_step,
+                              device=device,
+                              workers=num_workers,
+                              project=output_folder,
+                              name=training_run_folder_name,
+                              verbose=verbose,
+                              amp=use_autocast,
+                              fraction=fraction_sample_dtataset,
+                              lr0=lr,
+                              lrf=lrf,
+                              plots=generate_plots
+                              ) 
 
 ##### DEBUG #####
 
@@ -124,6 +140,7 @@ output_folder = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose'
 
 YOLO_Pose().train(
     dataset_config='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/utils/config_povsurgery.yaml',
+    model_config_folder='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config',
     model_config='small',
     num_epochs=10,
     batch_size=1,
@@ -133,11 +150,14 @@ YOLO_Pose().train(
     training_run_folder_name=training_run_folder_name,
     verbose=True,
     generate_plots=True,
-    lr=00.01,
+    lr=0.01,
+    lrf=0.01,
     checkpoint_step=-1,
     output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
-    use_autocast=False
+    use_autocast=False,
+    fraction_sample_dtataset=1
 )
+
 '''
 YOLO_Pose().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',

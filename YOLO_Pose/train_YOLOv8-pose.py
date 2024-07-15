@@ -3,11 +3,12 @@ import os
 import torch
 import datetime
 import pytz
-from YOLOv8-pose import YOLO_Pose
+from YOLOv8_pose import YOLO_Pose
 
 # Argument parsing
 parser = argparse.ArgumentParser(description='Train Keypoint RCNN model')
 parser.add_argument('--dataset_config', type=str, required=True, help='Root directory of the .yaml dataset config file')
+parser.add_argument('--model_config_folder', type=str, required=True, help='Root directory of the folder where .yaml model config file "yolov8-pose.yaml" is located')
 parser.add_argument('--model_type', type=str, required=True, help="Model's scale to load")
 parser.add_argument('--num_epochs', type=int, default=10, help='Number of epochs to train')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch size')
@@ -23,13 +24,15 @@ parser.add_argument('--lr_final', type=int, default=0.01, help='Final learning r
 parser.add_argument('--checkpoint_step', type=int, default=-1, help='Checkpoint save interval')
 parser.add_argument('--output_folder', type=str, required=True, help='Output folder for logs and checkpoints')
 parser.add_argument('--use_autocast', action='store_true', help='Flag to enable mixed precision training')
+parser.add_argument('--fraction_sample_dtataset', type=float, default=1, help='Specifies the fraction of the dataset to use for training')
 args = parser.parse_args()
 
 # Initialize and train YOLO_Pose
-yolo-pose_trainer = YOLO_Pose()
+yolo_pose_trainer = YOLO_Pose()
 
-pose_trainer.train(
+yolo_pose_trainer.train(
     dataset_config=args.dataset_config,
+    model_config_folder=args.model_config_folder
     model_type=args.model_type,
     num_epochs=args.num_epochs,
     batch_size=args.batch_size,
@@ -43,5 +46,6 @@ pose_trainer.train(
     lrf=args.lr_final,
     checkpoint_step=args.checkpoint_step,
     output_folder=args.output_folder,
-    use_autocast=args.use_autocast
-)
+    use_autocast=args.use_autocast,
+    fraction_sample_dtataset=args.fraction_sample_dtataset
+    )
