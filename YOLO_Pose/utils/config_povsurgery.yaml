@@ -8,4 +8,4 @@ kpt_shape: [21, 2]  # [number of keypoints, number of dim]
 
 # Classes
 names:
-  1: hand
+  0: hand

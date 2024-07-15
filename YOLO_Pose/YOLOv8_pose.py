@@ -8,6 +8,7 @@ import torchvision.transforms as transforms
 from torchvision.models.detection.keypoint_rcnn import keypointrcnn_resnet50_fpn, KeypointRCNN_ResNet50_FPN_Weights
 import os
 import numpy as np
+from utils.dataset import Dataset
 from torch.utils.data import Subset
 from tqdm import tqdm
 import pytz
@@ -35,6 +36,27 @@ def capture_arguments(func):
     wrapper.captured_args = ()
     wrapper.captured_kwargs = {}
     return wrapper
+
+def povsurgery_collate_fn(batch):
+    """
+    Custom collate function for DataLoader.
+    Args:
+        batch (list): List of tuples (image, target_dict).
+                      image: Tensor containing an image.
+                      target_dict: Dictionary containing target annotations.
+
+    Returns:
+        tuple: Tuple containing:
+            - images (Tensor): Tensor containing batch_size images.
+            - targets (list): List of length batch_size, each element is a target dictionary.
+    """
+    images = [item[0] for item in batch]  # Extract images from each tuple
+    targets = [item[1] for item in batch]  # Extract targets from each tuple
+
+    # Stack images into a single tensor
+    images = torch.stack(images, dim=0)
+
+    return images, targets
 
 class YOLO_Pose:
     
@@ -70,7 +92,7 @@ class YOLO_Pose:
             
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        """ Configure a log """
+        '''""" Configure a log """
         # Create a new log file
         filename_log = os.path.join(output_folder, f'log_{output_folder.rpartition(os.sep)[-1]}.txt')
         # Configure the logging
@@ -94,7 +116,7 @@ class YOLO_Pose:
         logging.info('--'*50) 
         print('\n')
 
-        print(f'🟢 Logging info in "{filename_log}"\n')
+        print(f'🟢 Logging info in "{filename_log}"\n')'''
         
         """ Model Loading """
         
@@ -108,7 +130,7 @@ class YOLO_Pose:
         }
 
         # Load model: https://github.com/orgs/ultralytics/discussions/10211#discussioncomment-9182568
-        model = YOLO(os.path.join(model_config_folder, f'yolov8{model_scale[model_config]}-pose.yaml')) # TODO
+        model = YOLO(os.path.join(model_config_folder, f'yolov8{model_scale[model_config]}-pose.yaml'))
 
         # Train the model
         results = model.train(data=dataset_config, 
@@ -129,6 +151,85 @@ class YOLO_Pose:
                               lrf=lrf,
                               plots=generate_plots
                               ) 
+
+    def evaluate(self, dataset_root, annot_root, model_path='', batch_size=1, seq='', output_results='', visualize=False):
+        
+        if not os.path.exists(output_results):
+            os.makedirs(output_results)
+        
+        """ load dataset """
+        
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        transform = transforms.Compose([transforms.ToTensor()])
+        
+        testset = np.load(os.path.join(annot_root, f'images-{load_set}.npy'), allow_pickle=True)
+        testset = Dataset(root=annot_root, load_set='test')
+        # testset = Subset(testset, list(range(100))) # DEBUG
+        test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
+        
+        ### Load model
+        torch.cuda.empty_cache()
+        model = YOLO(model_path)  # pretrained YOLOv8n model
+        print('YOLOv8-pose model is loaded')
+        model.to(device)
+        model = model.eval()
+        print(f'🟢 Model "{model_path.split(os.sep)[-2]}{os.sep}{model_path.split(os.sep)[-1]}" loaded')
+        
+        """ Evaluation """
+        
+        print(f'Results are saved in: \n{os.path.join(output_results, "results")}')
+        if visualize:
+            print(f'Visualizations are saved in: \n{os.path.join(output_results, "visualize")}')
+        
+        if seq != 'NO_SEQ':
+            print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
+            
+        # results_dict = {} # DEBUG
+        mpjpe_results = []
+                
+        for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
+            
+            # select specific sequence
+            if seq != 'NO_SEQ':
+                if not any(seq in t['path'] for t in targets):
+                    continue
+            
+            images = list(image.to(device) for image in images)
+            
+            results = model(images)
+             
+            # Save results and compute MPJPE
+            for res, t in zip(results, targets): # TODO 
+                # results_dict[t['path']] = res # DEBUG
+                sequence, frame = t['path'].split(os.sep)[-2:]
+                frame = frame.split('.')[0]
+                path_to_save_results = os.path.join(output_results, 'results', sequence)
+                if not os.path.exists(path_to_save_results):
+                    os.makedirs(path_to_save_results)
+                with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
+                    pickle.dump(res, f)
+                # compute MPJPE               
+                print(f'pred.shape = {res["keypoints"].shape}: ', end = '') # DEBUG
+                avg_mpjpe, best_mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
+                print(f'avg_mpjpe {avg_mpjpe}, best_mpjpe {best_mpjpe}') # DEBUG
+                mpjpe_results.append(avg_mpjpe)
+                
+                if visualize:
+                    path_to_save_visual = os.path.join(output_results, 'visualize')
+                    if not os.path.exists(path_to_save_visual):
+                        os.makedirs(path_to_save_visual)
+                    visualize_keypoints2d(t['path'], res['keypoints'], 
+                                          dataset_root=dataset_root, 
+                                          output_results=path_to_save_visual)
+        
+        avg_rpjpe_result = np.ma.mean(np.ma.masked_array(mpjpe_results, np.isinf(mpjpe_results)))
+        
+        if seq != 'NO_SEQ': 
+            print(f'🟢 Average MPJPE on sequence "{seq}": {avg_rpjpe_result:.4f}')
+        else:
+            print(f'🟢 Average MPJPE on Test set: {avg_rpjpe_result:.4f}')
+        
+        return avg_rpjpe_result
 
 ##### DEBUG #####
 
@@ -155,7 +256,7 @@ YOLO_Pose().train(
     checkpoint_step=-1,
     output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
     use_autocast=False,
-    fraction_sample_dtataset=1
+    fraction_sample_dtataset=0.01 # DEBUG
 )
 
 '''
