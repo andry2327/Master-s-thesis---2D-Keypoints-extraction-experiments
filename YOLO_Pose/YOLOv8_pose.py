@@ -14,6 +14,7 @@ from tqdm import tqdm
 import pytz
 import logging
 import datetime
+from datetime import datetime
 from collections import defaultdict
 import pickle
 import sys
@@ -127,6 +128,7 @@ class YOLO_Pose:
                               val=False # DEBUG # disable validation
                               ) 
 
+    # https://docs.ultralytics.com/modes/predict
     def evaluate(self, dataset_root, annot_root, model_path='', batch_size=1, seq='', output_results='', visualize=False):
         
         if not os.path.exists(output_results):
@@ -137,8 +139,8 @@ class YOLO_Pose:
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         transform = transforms.Compose([transforms.ToTensor()])
         
-        testset = np.load(os.path.join(annot_root, f'images-{load_set}.npy'), allow_pickle=True)
-        testset = Dataset(root=annot_root, load_set='test')
+        # testset = np.load(os.path.join(annot_root, f'images-test.npy'), allow_pickle=True)
+        testset = Dataset(root=annot_root, load_set='test', transforms=transform)
         # testset = Subset(testset, list(range(100))) # DEBUG
         test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
         
@@ -147,7 +149,6 @@ class YOLO_Pose:
         model = YOLO(model_path)  # pretrained YOLOv8n model
         print('YOLOv8-pose model is loaded')
         model.to(device)
-        model = model.eval()
         print(f'🟢 Model "{model_path.split(os.sep)[-2]}{os.sep}{model_path.split(os.sep)[-1]}" loaded')
         
         """ Evaluation """
@@ -161,18 +162,20 @@ class YOLO_Pose:
             
         # results_dict = {} # DEBUG
         mpjpe_results = []
-                
         for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
-            
             # select specific sequence
             if seq != 'NO_SEQ':
                 if not any(seq in t['path'] for t in targets):
                     continue
+
+            images = images.to(device)
+
+            start_time = datetime.now()
+            results = model.predict(images, imgsz=images.shape[-2:], device=device, save=True, save_txt=True)
+            end_time = datetime.now()
+            elapsed_time = end_time - start_time
+            print(f'Input {i} - Elapsed time: {elapsed_time.total_seconds()*1000} ms')
             
-            images = list(image.to(device) for image in images)
-            
-            results = model(images)
-             
             # Save results and compute MPJPE
             for res, t in zip(results, targets): # TODO 
                 # results_dict[t['path']] = res # DEBUG
@@ -214,36 +217,37 @@ output_folder = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose'
 
 ##### DEBUG #####
 
-YOLO_Pose().train(
-    dataset_config='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/utils/config_povsurgery.yaml',
-    model_config_folder='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config',
-    model_config='small',
-    num_epochs=10,
-    batch_size=1,
-    image_size=1920,
-    save=True,
-    num_workers=2,
-    training_run_folder_name=training_run_folder_name,
-    verbose=True,
-    generate_plots=True,
-    lr=0.01,
-    lrf=0.01,
-    checkpoint_step=1,
-    output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
-    use_autocast=False,
-    fraction_sample_dtataset=0.01 # DEBUG
-)
 
-'''
+# YOLO_Pose().train(
+#     dataset_config='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/utils/config_povsurgery.yaml',
+#     model_config_folder='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config',
+#     model_config='small',
+#     num_epochs=10,
+#     batch_size=1,
+#     image_size=1920,
+#     save=True,
+#     num_workers=2,
+#     training_run_folder_name=training_run_folder_name,
+#     verbose=True,
+#     generate_plots=True,
+#     lr=0.01,
+#     lrf=0.01,
+#     checkpoint_step=1,
+#     output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
+#     use_autocast=False,
+#     fraction_sample_dtataset=0.01 # DEBUG
+# )
+
+
 YOLO_Pose().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
-    model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/checkpoints/model_best-1',
+    model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose/Training-DEBUG--16-07-2024_09-46/weights/best.pt',
     batch_size=1,
-    seq='',
-    output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/KeypointRCNN/Training-DEBUG--08-07-2024_15-58/output_results',
+    seq='r_friem_3',
+    output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose/Training-DEBUG--16-07-2024_09-46/output_results',
     visualize=False
 )
-'''
+
 
 ##### DEBUG #####

@@ -3,7 +3,10 @@ import torch.utils.data as data
 import numpy as np
 import os
 import cv2
-from utils.keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
+import sys
+# change this based on you file system, append "utils" folder where "keypoints2d_utils.py" is stored
+sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
+from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
 
 class Dataset(data.Dataset):
     def __init__(self, root, model_name='', load_set='train', transforms=None):
