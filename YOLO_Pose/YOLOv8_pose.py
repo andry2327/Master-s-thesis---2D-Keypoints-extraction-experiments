@@ -91,32 +91,6 @@ class YOLO_Pose:
         #     os.makedirs(os.path.join(output_folder, 'checkpoints'))
             
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-        '''""" Configure a log """
-        # Create a new log file
-        filename_log = os.path.join(output_folder, f'log_{output_folder.rpartition(os.sep)[-1]}.txt')
-        # Configure the logging
-        log_format = '%(message)s'
-        logging.basicConfig(
-            filename=filename_log,
-            level=logging.INFO,
-            format=log_format,
-            filemode='a'  
-        )
-        fh = logging.FileHandler(filename_log, mode='a')  # Use 'a' mode to append to the log file
-        fh.setFormatter(logging.Formatter(log_format))
-        logger = logging.getLogger(__name__)
-        logger.addHandler(fh)
-        logger.setLevel(logging.INFO)
-
-        logging.info('args:')
-        for k, v in self.train.captured_kwargs.items():
-            logging.info(f'\t{k}: {v}')
-        logging.info(f'\tdevice: {device}')
-        logging.info('--'*50) 
-        print('\n')
-
-        print(f'🟢 Logging info in "{filename_log}"\n')'''
         
         """ Model Loading """
         
@@ -149,7 +123,8 @@ class YOLO_Pose:
                               fraction=fraction_sample_dtataset,
                               lr0=lr,
                               lrf=lrf,
-                              plots=generate_plots
+                              plots=generate_plots,
+                              val=False # DEBUG # disable validation
                               ) 
 
     def evaluate(self, dataset_root, annot_root, model_path='', batch_size=1, seq='', output_results='', visualize=False):
@@ -253,7 +228,7 @@ YOLO_Pose().train(
     generate_plots=True,
     lr=0.01,
     lrf=0.01,
-    checkpoint_step=-1,
+    checkpoint_step=1,
     output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
     use_autocast=False,
     fraction_sample_dtataset=0.01 # DEBUG
