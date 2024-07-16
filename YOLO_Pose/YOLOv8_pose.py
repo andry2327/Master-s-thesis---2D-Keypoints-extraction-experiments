@@ -161,6 +161,7 @@ class YOLO_Pose:
             print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
             
         mpjpe_results = []
+        avg_speed = [] #DEBUG
         for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
             # select specific sequence
             if seq != 'NO_SEQ':
@@ -174,7 +175,12 @@ class YOLO_Pose:
             results = model(t['path'], imgsz=1920) # #2
             end_time = datetime.now()
             elapsed_time = end_time - start_time
-            print(f'Input {i} - Elapsed time: {elapsed_time.total_seconds()*1000} ms')
+            # print(f'Input {i} - Elapsed time: {elapsed_time.total_seconds()*1000} ms')
+            avg_speed.append(elapsed_time.total_seconds())
+            
+            if i==1000:
+                print(f"YOLOv8-pose Prediction took {np.mean(avg_speed)*1000} ms on average")
+                break
             
             # Save results and compute MPJPE
             for res, t in zip(results, targets):
