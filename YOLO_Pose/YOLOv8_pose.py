@@ -160,7 +160,6 @@ class YOLO_Pose:
         if seq != 'NO_SEQ':
             print(f'🟢 Searching for sequence "{seq}" to evaluate ...')
             
-        # results_dict = {} # DEBUG
         mpjpe_results = []
         for i, (images, targets) in tqdm(enumerate(test_loader), total=len(test_loader), desc='Evaluation: '):
             # select specific sequence
@@ -171,32 +170,37 @@ class YOLO_Pose:
             images = images.to(device)
 
             start_time = datetime.now()
-            results = model.predict(images, imgsz=images.shape[-2:], device=device, save=True, save_txt=True)
+            results = model.predict(images, imgsz=images.shape[-2:], device=device) # #1
+            results = model(t['path'], imgsz=1920) # #2
             end_time = datetime.now()
             elapsed_time = end_time - start_time
             print(f'Input {i} - Elapsed time: {elapsed_time.total_seconds()*1000} ms')
             
             # Save results and compute MPJPE
-            for res, t in zip(results, targets): # TODO 
-                # results_dict[t['path']] = res # DEBUG
+            for res, t in zip(results, targets):
                 sequence, frame = t['path'].split(os.sep)[-2:]
                 frame = frame.split('.')[0]
                 path_to_save_results = os.path.join(output_results, 'results', sequence)
+                # re-formatting results
+                res_dict = {
+                    'boxes': res.boxes.xyxy,
+                    'labels': res.boxes.cls,
+                    'scores': res.boxes.conf,
+                    'keypoints': res.keypoints.xy
+                }
                 if not os.path.exists(path_to_save_results):
                     os.makedirs(path_to_save_results)
                 with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
-                    pickle.dump(res, f)
+                    pickle.dump(res_dict, f)
                 # compute MPJPE               
-                print(f'pred.shape = {res["keypoints"].shape}: ', end = '') # DEBUG
-                avg_mpjpe, best_mpjpe = compute_MPJPE(res['keypoints'], t['keypoints'])
-                print(f'avg_mpjpe {avg_mpjpe}, best_mpjpe {best_mpjpe}') # DEBUG
+                avg_mpjpe, best_mpjpe = compute_MPJPE(res_dict['keypoints'], t['keypoints'])
                 mpjpe_results.append(avg_mpjpe)
                 
                 if visualize:
                     path_to_save_visual = os.path.join(output_results, 'visualize')
                     if not os.path.exists(path_to_save_visual):
                         os.makedirs(path_to_save_visual)
-                    visualize_keypoints2d(t['path'], res['keypoints'], 
+                    visualize_keypoints2d(t['path'], res_dict['keypoints'], 
                                           dataset_root=dataset_root, 
                                           output_results=path_to_save_visual)
         
@@ -211,7 +215,7 @@ class YOLO_Pose:
 
 ##### DEBUG #####
 
-current_timestamp = datetime.datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
+current_timestamp = datetime.now(pytz.timezone("Europe/Rome")).strftime("%d-%m-%Y_%H-%M")
 training_run_folder_name = f'Training-DEBUG--{current_timestamp}'
 output_folder = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose'
 
@@ -244,7 +248,7 @@ YOLO_Pose().evaluate(
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
     model_path='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose/Training-DEBUG--16-07-2024_09-46/weights/best.pt',
     batch_size=1,
-    seq='r_friem_3',
+    seq='NO_SEQ',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose/Training-DEBUG--16-07-2024_09-46/output_results',
     visualize=False
 )
