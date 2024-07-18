@@ -22,7 +22,7 @@ import sys
 sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
 from keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 
-sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/ultralytics')
+sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/ultralytics')
 from ultralytics.models import YOLO
 
 from functools import wraps
@@ -170,7 +170,7 @@ class YOLO_Pose:
 
             images = images.to(device)
 
-            results = model.predict(images, imgsz=images.shape[-2:], device=device, max_det=1) # #1
+            results = model.predict(images, imgsz=images.shape[-2:], device=device) # #1
             # results = model(targets[0]['path'], imgsz=1920) # #2
     
             # Save results and compute MPJPE
