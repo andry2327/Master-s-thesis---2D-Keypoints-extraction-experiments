@@ -22,7 +22,8 @@ import sys
 sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
 from keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 
-from ultralytics import YOLO
+sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/ultralytics')
+from ultralytics.models import YOLO
 
 from functools import wraps
 
@@ -141,8 +142,8 @@ class YOLO_Pose:
         
         # testset = np.load(os.path.join(annot_root, f'images-test.npy'), allow_pickle=True)
         testset = Dataset(root=annot_root, load_set='test', transforms=transform)
-        # testset = Subset(testset, list(range(100))) # DEBUG
-        test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn)
+        # testset = Subset(testset, list(range(386, 400))) # DEBUG
+        test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2, collate_fn=povsurgery_collate_fn) # DEBUG shuffle
         
         ### Load model
         torch.cuda.empty_cache()
@@ -169,7 +170,7 @@ class YOLO_Pose:
 
             images = images.to(device)
 
-            results = model.predict(images, imgsz=1920, device=device) # #1
+            results = model.predict(images, imgsz=images.shape[-2:], device=device, max_det=1) # #1
             # results = model(targets[0]['path'], imgsz=1920) # #2
     
             # Save results and compute MPJPE
@@ -184,6 +185,7 @@ class YOLO_Pose:
                     'scores': res.boxes.conf,
                     'keypoints': res.keypoints.xy
                 }
+                print(res_dict['keypoints'].shape, res.feature_maps.shape) # DEBUG
                 if not os.path.exists(path_to_save_results):
                     os.makedirs(path_to_save_results)
                 with open(os.path.join(path_to_save_results, f'{frame}.pkl'), 'wb') as f:
