@@ -17,7 +17,7 @@ import datetime
 from collections import defaultdict
 import pickle
 import sys
- # change this based on you file system, append "utils" folder where "keypoints2d_utils.py" is stored
+# change this based on you file system, append "utils" folder where "keypoints2d_utils.py" is stored
 sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils') 
 from keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 

@@ -240,7 +240,7 @@ output_folder = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose'
 #     fraction_sample_dtataset=0.01 # DEBUG
 # )
 
-
+'''
 YOLO_Pose().evaluate(
     dataset_root='/content/drive/MyDrive/Thesis/POV_Surgery_data',
     annot_root='/content/drive/MyDrive/Thesis/THOR-Net_based_work/povsurgery/object_False',
@@ -249,7 +249,7 @@ YOLO_Pose().evaluate(
     seq='NO_SEQ',
     output_results='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose/Training-DEBUG--16-07-2024_09-46/output_results',
     visualize=False
-)
+)'''
 
 
 ##### DEBUG #####

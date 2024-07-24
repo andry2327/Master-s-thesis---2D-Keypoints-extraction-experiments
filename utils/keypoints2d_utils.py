@@ -19,10 +19,10 @@ device = 'cpu' # cuda, cpu
 batch_size = 1
 TPID = [744, 320, 443, 554, 671]
 ###################################################################################
-DATASET_ROOT = '/content/drive/MyDrive/Thesis/POV_Surgery_data'
+DATASET_ROOT = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
 INFO_SHEET_PATH = join(DATASET_ROOT, 'POV_Surgery_info.csv')
-MANO_PATH = '/content/drive/MyDrive/Thesis/mano_v1_2/models/MANO_RIGHT.pkl'
-REPRO_DIR = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/repro_dir'
+MANO_PATH = '/home/aidara/Desktop/Thesis_Andrea/data/mano_v1_2/models/MANO_RIGHT.pkl'
+REPRO_DIR = '/home/aidara/Desktop/Thesis_Andrea/Keypoint_2D_extraction_Experiemnts/repro_dir'
 ###################################################################################
 info_sheet = pandas.read_csv(INFO_SHEET_PATH) 
 SCALPE_OFFSET = [0.04805371, 0 ,0]
@@ -273,6 +273,7 @@ def compute_MPJPE(pred, target):
     
     return avg_mpjpe.detach().cpu().numpy(), best_mpjpe.detach().cpu().numpy()
 
-
+'''
 fp = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
 kps = get_keypoints2d_from_frame(fp, add_visibility=True)
+'''

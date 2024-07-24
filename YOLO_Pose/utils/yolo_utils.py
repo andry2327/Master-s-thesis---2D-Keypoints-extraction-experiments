@@ -162,6 +162,6 @@ images_yolo_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/i
 
 # res = img_path_to_str_annot(img_path)
 # create_annotations(dataset_root, annot_path)
-copy_images(dataset_root, images_yolo_path)
+# copy_images(dataset_root, images_yolo_path)
 
 ##### DEBUG #####
