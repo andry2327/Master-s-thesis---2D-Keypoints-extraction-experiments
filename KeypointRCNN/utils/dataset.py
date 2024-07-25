@@ -8,6 +8,12 @@ import sys
 sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
 from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
 
+def check_valid_bbox(bbox):
+    x1, y1, x2, y2 = tuple(bbox)
+    if ((x2 - x1) <= 0) or ((y2 - y1) <= 0):
+        return False
+    return True
+
 class Dataset(data.Dataset):
     def __init__(self, root, model_name='', load_set='train', transforms=None):
         self.root = root
@@ -17,6 +23,7 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
+        img_path = img_path.replace(' (1)', '')
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=True) # format [y, x, visibility]
         bbox = get_bbox_from_frame(img_path, list_as_out_format=True)
@@ -26,7 +33,7 @@ class Dataset(data.Dataset):
         if self.model_name == 'KeypointRCNN':
             img = img / 255 # normalize values     
             img_height, img_width, _ = img.shape
-            if bbox == [None]*4:
+            if bbox == [None]*4 or (not check_valid_bbox(bbox)):
                 # hand not visible/present -> empty targets
                 bbox = torch.empty((0, 4), dtype=torch.float)
                 keypoints2d = torch.empty((0, 21, 3), dtype=torch.float)

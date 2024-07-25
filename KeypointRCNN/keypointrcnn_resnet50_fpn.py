@@ -136,7 +136,7 @@ class KeypointRCNN:
             model.train()
             pbar = tqdm(desc=f'Epoch {epoch+1} - train: ', total=len(train_loader))
             for i, (images, targets) in enumerate(train_loader):
-                
+
                 images = list(image.to(device) for image in images)
                 targets = [{k: v.to(device) for k, v in t.items() if not isinstance(v, str)} for t in targets]
                 
