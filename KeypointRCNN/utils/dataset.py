@@ -4,6 +4,7 @@ import numpy as np
 import os
 import cv2
 import sys
+import re
 # change this based on you file system, append "utils" folder where "keypoints2d_utils.py" is stored
 sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
 from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
@@ -23,7 +24,8 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
-        img_path = img_path.replace(' (1)', '')
+        pattern = r' \(\d+\)' # fix 
+        img_path = re.sub(pattern, '', img_path) # fix 
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         keypoints2d = get_keypoints2d_from_frame(img_path, add_visibility=True) # format [y, x, visibility]
         bbox = get_bbox_from_frame(img_path, list_as_out_format=True)
