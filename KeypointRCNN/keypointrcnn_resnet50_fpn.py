@@ -109,12 +109,12 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
-        # trainset = Subset(trainset, list(range(5))) # DEBUG
+        # trainset = Subset(trainset, list(range(50))) # DEBUG
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
-        # valset = Subset(valset, list(range(2))) # DEBUG
+        # valset = Subset(valset, list(range(20))) # DEBUG
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
