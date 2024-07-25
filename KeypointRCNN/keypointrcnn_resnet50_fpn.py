@@ -73,6 +73,8 @@ class KeypointRCNN:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
             os.makedirs(os.path.join(output_folder, 'checkpoints'))
+        elif not os.path.exists(os.path.join(output_folder, 'checkpoints')):
+            os.makedirs(os.path.join(output_folder, 'checkpoints'))
             
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
