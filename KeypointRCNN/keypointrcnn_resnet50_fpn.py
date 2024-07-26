@@ -118,7 +118,7 @@ class KeypointRCNN:
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
         if dataset_subset_frac > 0:
             subset_size = round(len(valset.images)*dataset_subset_frac)
-            valset = Subset(valset, subset_size)
+            valset = Subset(valset, list(range(subset_size)))
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
