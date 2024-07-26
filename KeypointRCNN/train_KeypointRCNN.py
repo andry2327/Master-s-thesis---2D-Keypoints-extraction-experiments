@@ -19,6 +19,7 @@ parser.add_argument('--lr_step_gamma', type=float, default=0.1, help='Gamma fact
 parser.add_argument('--log_train_step', type=int, default=1, help='Logging interval during training')
 parser.add_argument('--val_step', type=int, default=1, help='Validation interval')
 parser.add_argument('--checkpoint_step', type=int, default=1, help='Checkpoint save interval')
+parser.add_argument('--dataset_subset_frac', type=float, default=-1, help='Length of subset dataset to use')
 parser.add_argument('--output_folder', type=str, required=True, help='Output folder for logs and checkpoints')
 parser.add_argument('--use_autocast', action='store_true', help='Flag to enable mixed precision training')
 args = parser.parse_args()
@@ -42,6 +43,7 @@ keypoint_rcnn_trainer.train(
     log_train_step=args.log_train_step,
     val_step=args.val_step,
     checkpoint_step=args.checkpoint_step,
+    dataset_subset_frac=args.dataset_subset_frac,
     output_folder=args.output_folder,
     use_autocast=args.use_autocast
 )

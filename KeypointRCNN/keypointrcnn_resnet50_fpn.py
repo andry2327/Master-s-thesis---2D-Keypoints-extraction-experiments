@@ -67,7 +67,7 @@ class KeypointRCNN:
         
     @capture_arguments
     def train(self, dataset_root, annot_root, num_epochs=10, batch_size=1, lr=0.02, step_size=120000, lr_step_gamma=0.1,
-              log_train_step=1, val_step=1, checkpoint_step=1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction',
+              log_train_step=1, val_step=1, checkpoint_step=1, dataset_subset_frac=-1, output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction',
               use_autocast=False):
 
         if not os.path.exists(output_folder):
@@ -109,12 +109,16 @@ class KeypointRCNN:
         transform = transforms.Compose([transforms.ToTensor()])
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
-        # trainset = Subset(trainset, list(range(50))) # DEBUG
+        if dataset_subset_frac > 0:
+            subset_size = round(len(trainset)*dataset_subset_frac)
+            trainset = Subset(trainset, list(range(subset_size)))
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
-        # valset = Subset(valset, list(range(20))) # DEBUG
+        if dataset_subset_frac > 0:
+            subset_size = round(len(valset)*dataset_subset_frac)
+            valset = Subset(valset, subset_size)
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
