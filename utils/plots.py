@@ -197,7 +197,7 @@ def plot_losses(log_file, out_path=''):
     print(f'Plots saved in "{path_out}"')
     plt.tight_layout()
     plt.savefig(path_out, dpi=300)
-    plt.show()
+    # plt.show()
     
 def main():
     parser = argparse.ArgumentParser(description='Plot training and validation losses from log file.')

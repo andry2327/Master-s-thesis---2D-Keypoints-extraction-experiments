@@ -110,14 +110,14 @@ class KeypointRCNN:
         
         trainset = Dataset(root=annot_root, model_name=self.model_name, load_set='train', transforms=transform)
         if dataset_subset_frac > 0:
-            subset_size = round(len(trainset)*dataset_subset_frac)
+            subset_size = round(len(trainset.images)*dataset_subset_frac)
             trainset = Subset(trainset, list(range(subset_size)))
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
         
         valset = Dataset(root=annot_root, model_name=self.model_name, load_set='val', transforms=transform)
         if dataset_subset_frac > 0:
-            subset_size = round(len(valset)*dataset_subset_frac)
+            subset_size = round(len(valset.images)*dataset_subset_frac)
             valset = Subset(valset, subset_size)
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=2, 
                                                 collate_fn=povsurgery_collate_fn, pin_memory=True, persistent_workers=True)
