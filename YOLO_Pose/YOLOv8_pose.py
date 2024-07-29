@@ -126,7 +126,7 @@ class YOLO_Pose:
                               lr0=lr,
                               lrf=lrf,
                               plots=generate_plots,
-                              val=False # DEBUG # disable validation
+                              val=False, # DEBUG # disable validation
                               ) 
 
     # https://docs.ultralytics.com/modes/predict

@@ -90,6 +90,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot training loss classifier
     axs[0, 0].plot(epochs_train, loss_classifier, label='Loss Classifier', marker='o')
+    axs[0, 0].set_xticks(epochs_train)
     axs[0, 0].set_xlabel('Epochs', fontsize=fontsize)
     axs[0, 0].set_ylabel('Loss', fontsize=fontsize)
     axs[0, 0].set_title('Training Loss Classifier', fontsize=fontsize)
@@ -100,6 +101,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot training loss box reg
     axs[1, 0].plot(epochs_train, loss_box_reg, label='Loss Box Reg', marker='o')
+    axs[1, 0].set_xticks(epochs_train)
     axs[1, 0].set_xlabel('Epochs', fontsize=fontsize)
     axs[1, 0].set_ylabel('Loss', fontsize=fontsize)
     axs[1, 0].set_title('Training Loss Box Reg', fontsize=fontsize)
@@ -110,6 +112,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot training loss keypoint
     axs[2, 0].plot(epochs_train, loss_keypoint, label='Loss Keypoint', marker='o')
+    axs[2, 0].set_xticks(epochs_train)
     axs[2, 0].set_xlabel('Epochs', fontsize=fontsize)
     axs[2, 0].set_ylabel('Loss', fontsize=fontsize)
     axs[2, 0].set_title('Training Loss Keypoint', fontsize=fontsize)
@@ -120,6 +123,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot training loss objectness
     axs[3, 0].plot(epochs_train, loss_objectness, label='Loss Objectness', marker='o')
+    axs[3, 0].set_xticks(epochs_train)
     axs[3, 0].set_xlabel('Epochs', fontsize=fontsize)
     axs[3, 0].set_ylabel('Loss', fontsize=fontsize)
     axs[3, 0].set_title('Training Loss Objectness', fontsize=fontsize)
@@ -130,6 +134,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot training loss rpn box reg
     axs[4, 0].plot(epochs_train, loss_rpn_box_reg, label='Loss RPN Box Reg', marker='o')
+    axs[4, 0].set_xticks(epochs_train)
     axs[4, 0].set_xlabel('Epochs', fontsize=fontsize)
     axs[4, 0].set_ylabel('Loss', fontsize=fontsize)
     axs[4, 0].set_title('Training Loss RPN Box Reg', fontsize=fontsize)
@@ -140,6 +145,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot validation loss classifier
     axs[0, 1].plot(val_epochs, val_loss_classifier, label='Validation Loss Classifier', marker='x', color='orange')
+    axs[0, 1].set_xticks(epochs_train)
     axs[0, 1].set_xlabel('Epochs', fontsize=fontsize)
     axs[0, 1].set_ylabel('Loss', fontsize=fontsize)
     axs[0, 1].set_title('Validation Loss Classifier', fontsize=fontsize)
@@ -150,6 +156,7 @@ def plot_losses(log_file, out_path=''):
     
     # Plot validation loss box reg
     axs[1, 1].plot(val_epochs, val_loss_box_reg, label='Validation Loss Box Reg', marker='x', color='orange')
+    axs[1, 1].set_xticks(epochs_train)
     axs[1, 1].set_xlabel('Epochs', fontsize=fontsize)
     axs[1, 1].set_ylabel('Loss', fontsize=fontsize)
     axs[1, 1].set_title('Validation Loss Box Reg', fontsize=fontsize)
@@ -160,6 +167,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot validation loss keypoint
     axs[2, 1].plot(val_epochs, val_loss_keypoint, label='Validation Loss Keypoint', marker='x', color='orange')
+    axs[2, 1].set_xticks(epochs_train)
     axs[2, 1].set_xlabel('Epochs', fontsize=fontsize)
     axs[2, 1].set_ylabel('Loss', fontsize=fontsize)
     axs[2, 1].set_title('Validation Loss Keypoint', fontsize=fontsize)
@@ -170,6 +178,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot validation loss objectness
     axs[3, 1].plot(val_epochs, val_loss_objectness, label='Validation Loss Objectness', marker='x', color='orange')
+    axs[3, 1].set_xticks(epochs_train)
     axs[3, 1].set_xlabel('Epochs', fontsize=fontsize)
     axs[3, 1].set_ylabel('Loss', fontsize=fontsize)
     axs[3, 1].set_title('Validation Loss Objectness', fontsize=fontsize)
@@ -180,6 +189,7 @@ def plot_losses(log_file, out_path=''):
 
     # Plot validation loss rpn box reg
     axs[4, 1].plot(val_epochs, val_loss_rpn_box_reg, label='Validation Loss RPN Box Reg', marker='x', color='orange')
+    axs[4, 1].set_xticks(epochs_train)
     axs[4, 1].set_xlabel('Epochs', fontsize=fontsize)
     axs[4, 1].set_ylabel('Loss', fontsize=fontsize)
     axs[4, 1].set_title('Validation Loss RPN Box Reg', fontsize=fontsize)
@@ -190,7 +200,7 @@ def plot_losses(log_file, out_path=''):
 
     plt.subplots_adjust(hspace=0.4, wspace=0.4, top=0.9, bottom=0.1)
     
-    file_name = f'Loss_plots--{os.path.basename(log_file).strip(".txt")}.png'
+    file_name = 'loss_plots.png'
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     path_out = os.path.join(out_path, file_name)

@@ -80,7 +80,7 @@ class KeypointRCNN:
 
         """ Configure a log """
         # Create a new log file
-        filename_log = os.path.join(output_folder, f'log_{output_folder.rpartition(os.sep)[-1]}.txt')
+        filename_log = os.path.join(output_folder, 'log_training.txt')
         # Configure the logging
         log_format = '%(message)s'
         logging.basicConfig(
@@ -131,7 +131,7 @@ class KeypointRCNN:
             model = nn.DataParallel(model, device_ids=[device])
             
         optimizer = optim.Adam(model.parameters(), lr=lr)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size//len(train_loader), gamma=lr_step_gamma)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=lr_step_gamma)
 
         if use_autocast:
             scaler = torch.cuda.amp.GradScaler()
@@ -162,7 +162,8 @@ class KeypointRCNN:
                     loss_dict = model(images, targets)
                     
                     # Compute total loss
-                    losses = sum(loss for loss in loss_dict.values())
+                    #losses = sum(loss for loss in loss_dict.values())
+                    losses = loss_dict['loss_keypoint'] # consider only keypoint loss
                     
                     # Backward pass and optimization
                     optimizer.zero_grad()
