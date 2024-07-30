@@ -273,7 +273,61 @@ def compute_MPJPE(pred, target):
     
     return avg_mpjpe.detach().cpu().numpy(), best_mpjpe.detach().cpu().numpy()
 
-'''
-fp = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
-kps = get_keypoints2d_from_frame(fp, add_visibility=True)
-'''
+# For each of the N keypoints, returns a dim x dim box around it
+def get_boxes_keypoints(frame_path, dim=50):
+    
+    boxes = []
+    keypoints = get_keypoints2d_from_frame(frame_path)
+    
+    for keypoint in keypoints:
+        x, y = keypoint
+
+        x1 = int(x - dim / 2)
+        y1 = int(y - dim / 2)
+        x2 = int(x + dim / 2)
+        y2 = int(y + dim / 2)
+        
+        boxes.append([x1, y1, x2, y2])
+    
+    return boxes
+
+def visualize_boxes_keypoints(image_path, boxes, output_folder):
+    # Load the image
+    image = cv2.imread(image_path)
+    # Check if the image was loaded successfully
+    if image is None:
+        raise FileNotFoundError(f"Image file {image_path} not found or unable to load.")
+    
+    height, width, _ = image.shape
+    print(image.shape)
+    for box in boxes:
+        x1, y1, x2, y2 = box
+        
+        # Clip the coordinates to ensure they stay within the image boundaries
+        x1 = max(0, int(x1))
+        y1 = max(0, int(y1))
+        x2 = min(width, int(x2))
+        y2 = min(height, int(y2))
+        
+        # Draw the bounding box (rectangle) on the image
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green color with thickness of 2
+    
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    output_file_path = os.path.join(output_folder, 'keypoints_boxes.png')
+    
+    # Save the image with boxes
+    cv2.imwrite(output_file_path, image)
+    
+    # Display the image (optional)
+    cv2.imshow('Image with Boxes', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
+
+boxes = get_boxes_keypoints(fp, dim=50)
+visualize_boxes_keypoints(fp, boxes, 
+                          output_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
+                          )
+
