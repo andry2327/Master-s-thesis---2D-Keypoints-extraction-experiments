@@ -127,7 +127,9 @@ class YOLO_Pose:
                               lrf=lrf,
                               plots=generate_plots,
                               val=False, # DEBUG # disable validation
-                              ) 
+                              )
+        
+        print('🟢 Training finished!')
 
     # https://docs.ultralytics.com/modes/predict
     def evaluate(self, dataset_root, annot_root, model_path='', batch_size=1, seq='', output_results='', visualize=False):
