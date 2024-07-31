@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
-from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame
+from keypoints2d_utils import get_keypoints2d_from_frame, get_bbox_from_frame, get_keypoints_bloodiness
 from tqdm import tqdm
 import shutil
 
@@ -18,6 +18,8 @@ TRAIN_SEQUENCES = ['r_diskplacer_1', 'm_diskplacer_2', 'r_diskplacer_2', 'r_disk
 VAL_SEQUENCES = ['d_scalpel_1', 'r_scalpel_3', 'r_diskplacer_5', 's_friem_2', 's_scalpel_3']
 
 TRAIN_SEQUENCES = list(set(TRAIN_SEQUENCES) - set(VAL_SEQUENCES))
+
+DATASET_ROOT = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
 
 # YOLO requires annotations in .txt, in a specific formatting:
 # https://docs.ultralytics.com/it/datasets/pose/
@@ -151,12 +153,54 @@ def copy_images(dataset_root, images_yolo_path):
             pbar.update(1)
         pbar.close()
     print(f'\n🟢 Images for YOLO format saved in {annot_path}')
+    
+# NOT USEFUL: https://github.com/ultralytics/ultralytics/issues/3409#issuecomment-1610881483
+def add_visibility_flag_from_xy_annotations(labels_path, output_folder, imgs_size=(1920, 1080)):
+    
+    VISIBLE_FLAG = 2
+    NOT_VISIBLE_FLAG = 1
+    BLOODINESS_THRESHOLD = 0.5
+    
+    splits = ['train', 'val']
+    for split in splits:
+        annot_files = os.listdir(os.path.join(labels_path, split))
+        path_annot_saved = os.path.join(output_folder, split)
+        os.makedirs(path_annot_saved, exist_ok=True)
+        pbar = tqdm(total=len(annot_files), desc=f'{split}: ')
+        for file_name in annot_files:
+            annot_path = os.path.join(labels_path, split, file_name)
+            seq_name, frame = file_name.rsplit('_', 1)
+            frame = frame.split('.')[0]
+            file_path_pov_surgery = os.path.join(DATASET_ROOT, 'color', seq_name, f'{frame}.jpg')
+            blodieness_values = get_keypoints_bloodiness(file_path_pov_surgery)
+            with open(annot_path, 'r') as f:
+                line = f.read()
+            elems = line.split(' ')
+            
+            # Create line to write
+            END_BOX_INFO = 5
+            line_to_write = ''
+            line_to_write += elems[0:END_BOX_INFO]
+            j = 0
+            for i in range(END_BOX_INFO, len(elems), 2):
+                px, py = elems[i], elems[i+1]
+                bloodiness = blodieness_values[j]
+                line_to_write += f' {px} {py} '
+                j+=1
+                
+            with open(os.path.join(output_folder, split, file_name), 'w') as f:
+                
+                f.write(line_to_write)
+            pbar.update(1)
+        pbar.close()
+            
 
 ##### DEBUG #####
 img_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
 dataset_root = '/content/drive/MyDrive/Thesis/POV_Surgery_data'
-annot_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/labels'
+annot_path = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data-YOLO_format/labels'
 images_yolo_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/images'
+output_folder = '/home/aidara/Desktop/Thesis_Andrea/data/labels_with_bloodiness'
 
 ##### DEBUG #####
 
@@ -165,3 +209,5 @@ images_yolo_path = '/content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format/i
 # copy_images(dataset_root, images_yolo_path)
 
 ##### DEBUG #####
+
+add_visibility_flag_from_xy_annotations(annot_path, output_folder=output_folder)

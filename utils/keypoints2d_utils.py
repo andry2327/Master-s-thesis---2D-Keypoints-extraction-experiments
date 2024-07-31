@@ -367,19 +367,15 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = box
         roi = image[y1: y2, x1: x2]
-        cv2.imshow(f'kps {i} ROI, ({(x1+x2)/2}, {(y1+y2)/2})', roi)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow(f'kps {i} ROI, ({(x1+x2)/2}, {(y1+y2)/2})', roi)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         H, W, C = roi.shape
         roi = roi.reshape(H*W, C)
         n_pixels = H*W
         count = sum(is_red((p[2], p[1], p[0])) for p in roi) # BGR to RGB when passed to is_red
-        '''count = 0
-        for p in roi:
-            if is_red(p):
-                count += 1'''
         bloodiness = count/n_pixels
-        print(f'bloodiness kp {i} = {bloodiness:.2%}')
+        # print(f'bloodiness kp {i} = {bloodiness:.2%}')
         bloodiness_values.append(bloodiness)
     
     return bloodiness_values
