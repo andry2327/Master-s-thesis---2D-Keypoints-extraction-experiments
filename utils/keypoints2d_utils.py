@@ -29,6 +29,13 @@ SCALPE_OFFSET = [0.04805371, 0 ,0]
 DISKPLACER_OFFSET = [0, 0.34612157 ,0]
 FRIEM_OFFSET = [0, 0.1145 ,0]
 
+''' ---------------------- PARAMETERS ---------------------- '''
+
+RED_DOMINANCE_THRESHOLD = 1.15 # Red should be RED_DOMINANCE_THRESHOLD times greater than green and blue
+RED_MINIMUM_VALUE = 100       # Minimum value for red to be considered a "red" shade
+
+''' -------------------------------------------------------- '''
+
 with torch.no_grad():
     rh_mano = mano.load(model_path=MANO_PATH,
                         model_type='mano',
@@ -336,18 +343,60 @@ def visualize_boxes_keypoints(image_path, boxes, output_folder):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def is_red(rgb):
+    R, G, B = rgb
+    if R > RED_MINIMUM_VALUE and (R >= G * RED_DOMINANCE_THRESHOLD and R >= B * RED_DOMINANCE_THRESHOLD):
+        return True
+    return False
+
+def get_keypoints_bloodiness(frame_path, dim_boxes=50):
+    
+    boxes = get_boxes_keypoints(frame_path, dim=dim_boxes)
+    
+    seq_name, frame = frame_path.split(os.sep)[-2:]
+    frame = os.path.splitext(frame)[0]  
+    
+    # Load the image
+    image = cv2.imread(frame_path) # image shape  (HEIGHT, WIDTH, CHANNELS)
+    # Check if the image was loaded successfully
+    if image is None:
+        raise FileNotFoundError(f"Image file {frame_path} not found or unable to load.")
+    
+    bloodiness_values = []
+    
+    for i, box in enumerate(boxes):
+        x1, y1, x2, y2 = box
+        roi = image[y1: y2, x1: x2]
+        cv2.imshow(f'kps {i} ROI, ({(x1+x2)/2}, {(y1+y2)/2})', roi)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        H, W, C = roi.shape
+        roi = roi.reshape(H*W, C)
+        n_pixels = H*W
+        count = sum(is_red((p[2], p[1], p[0])) for p in roi) # BGR to RGB when passed to is_red
+        '''count = 0
+        for p in roi:
+            if is_red(p):
+                count += 1'''
+        bloodiness = count/n_pixels
+        print(f'bloodiness kp {i} = {bloodiness:.2%}')
+        bloodiness_values.append(bloodiness)
+    
+    return bloodiness_values
 
 # /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg
-fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
+fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/m_friem_2/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
 dataset_root = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
 outs = '/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
 
-
+'''
 boxes = get_boxes_keypoints(fp, dim=50)
 visualize_boxes_keypoints(fp, boxes, 
                           output_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
                           )
-'''
+
 kps = get_keypoints2d_from_frame(fp, add_visibility=False)
 visualize_keypoints2d(fp, kps, dataset_root=dataset_root, output_results=outs)
 '''
+
+bloodiness_values = get_keypoints_bloodiness(fp)
