@@ -127,14 +127,16 @@ def vis_keypoints_with_skeleton(image, kp, fname='/home/rui/Downloads/inftest0.p
 
     #     cv2.imwrite(fname, color)
     
-def get_keypoints2d_from_frame(frame_path='', add_visibility=False):
+def get_keypoints2d_from_frame(frame_path='', add_visibility=False, dataset_root_real=None):
 
     # Extract sequence name and frame number
     seq_name, frame = os.path.split(frame_path)[-2:]
     frame = os.path.splitext(frame)[0]
 
     # Load annotations
-    annot_path = join(DATASET_ROOT, 'annotation', seq_name, f'{frame}.pkl')
+    dataset_root_real = dataset_root_real if dataset_root_real else DATASET_ROOT
+    annot_path = os.path.join(dataset_root_real, 'annotation', seq_name, f'{frame}.pkl')
+
     if not os.path.exists(annot_path):
         annot_path = annot_path.replace('color', 'annotation')
         assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
@@ -174,7 +176,7 @@ def get_keypoints2d_from_frame(frame_path='', add_visibility=False):
         visibility = np.ones((new_p2d.shape[0], 1))
         new_p2d = np.hstack((new_p2d, visibility))
     
-    return new_p2d.astype(np.int32)
+    return new_p2d.astype(np.int32) # IT RETURNS (y, x) coordinates
 
 def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     
@@ -229,7 +231,13 @@ def visualize_keypoints2d(frame_path, keypoints2d, dataset_root='', output_resul
     image = cv2.imread(join(dataset_root, 'color', seq_name, f'{frame}.jpg'))
     
     img_o = vis_keypoints_with_skeleton(image, keypoints2d)
-    
+    '''
+    # Add text annotations for each keypoint
+    for (y, x) in keypoints2d:
+        x = int(x)
+        y = int(y)
+        cv2.putText(img_o, f'({x}, {y})', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+    '''
     if not os.path.exists(join(output_results, seq_name)):
         os.makedirs(join(output_results, seq_name))
     img_path = join(output_results, seq_name, f'{frame}_kps2d_visual.jpg')
@@ -280,7 +288,7 @@ def get_boxes_keypoints(frame_path, dim=50):
     keypoints = get_keypoints2d_from_frame(frame_path)
     
     for keypoint in keypoints:
-        x, y = keypoint
+        y, x = keypoint
 
         x1 = int(x - dim / 2)
         y1 = int(y - dim / 2)
@@ -292,6 +300,10 @@ def get_boxes_keypoints(frame_path, dim=50):
     return boxes
 
 def visualize_boxes_keypoints(image_path, boxes, output_folder):
+    
+    seq_name, frame = image_path.split(os.sep)[-2:]
+    frame = os.path.splitext(frame)[0]  
+    
     # Load the image
     image = cv2.imread(image_path)
     # Check if the image was loaded successfully
@@ -299,7 +311,7 @@ def visualize_boxes_keypoints(image_path, boxes, output_folder):
         raise FileNotFoundError(f"Image file {image_path} not found or unable to load.")
     
     height, width, _ = image.shape
-    print(image.shape)
+    
     for box in boxes:
         x1, y1, x2, y2 = box
         
@@ -314,7 +326,7 @@ def visualize_boxes_keypoints(image_path, boxes, output_folder):
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    output_file_path = os.path.join(output_folder, 'keypoints_boxes.png')
+    output_file_path = os.path.join(output_folder, seq_name, f'{frame}_keypoints_boxes.png')
     
     # Save the image with boxes
     cv2.imwrite(output_file_path, image)
@@ -324,10 +336,18 @@ def visualize_boxes_keypoints(image_path, boxes, output_folder):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
+
+# /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg
+fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
+dataset_root = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
+outs = '/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
+
 
 boxes = get_boxes_keypoints(fp, dim=50)
 visualize_boxes_keypoints(fp, boxes, 
                           output_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
                           )
-
+'''
+kps = get_keypoints2d_from_frame(fp, add_visibility=False)
+visualize_keypoints2d(fp, kps, dataset_root=dataset_root, output_results=outs)
+'''
