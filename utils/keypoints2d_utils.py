@@ -368,6 +368,7 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
         x1, y1, x2, y2 = box
         roi = image[y1: y2, x1: x2]
         # cv2.imshow(f'kps {i} ROI, ({(x1+x2)/2}, {(y1+y2)/2})', roi)
+        # cv2.imwrite(f'kps {i} ROI, ({(x1+x2)/2}, {(y1+y2)/2}).png', roi)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         H, W, C = roi.shape
@@ -375,13 +376,13 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
         n_pixels = H*W
         count = sum(is_red((p[2], p[1], p[0])) for p in roi) # BGR to RGB when passed to is_red
         bloodiness = count/n_pixels
-        # print(f'bloodiness kp {i} = {bloodiness:.2%}')
+        print(f'bloodiness kp {i} = {bloodiness:.2%}')
         bloodiness_values.append(bloodiness)
     
     return bloodiness_values
 
 # /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg
-fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/m_friem_2/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
+fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
 dataset_root = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
 outs = '/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
 
