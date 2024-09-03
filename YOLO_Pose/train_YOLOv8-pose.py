@@ -19,12 +19,11 @@ parser.add_argument('--training_run_folder_name', type=str, required=True, help=
 parser.add_argument('--verbose', action='store_true', help='Enables verbose output during training, providing detailed logs and progress updates. Useful for debugging and closely monitoring the training process')
 parser.add_argument('--use_autocast', action='store_true', help='Enables Automatic Mixed Precision (AMP) training, reducing memory usage and possibly speeding up training with minimal impact on accuracy')
 parser.add_argument('--generate_plots', action='store_true', help='Generates and saves plots of training and validation metrics, as well as prediction examples, providing visual insights into model performance and learning progression')
-parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
-parser.add_argument('--lr_final', type=int, default=0.01, help='Final learning rate as a fraction of the initial rate = (lr0 * lrf), used in conjunction with schedulers to adjust the learning rate over time.')
+parser.add_argument('--lr', type=float, default=2e-7, help='Learning rate')
+parser.add_argument('--lr_final', type=float, default=2e-7, help='Final learning rate, used in conjunction with schedulers to adjust the learning rate over time.')
 parser.add_argument('--checkpoint_step', type=int, default=-1, help='Checkpoint save interval')
 parser.add_argument('--output_folder', type=str, required=True, help='Output folder for logs and checkpoints')
-parser.add_argument('--use_autocast', action='store_true', help='Flag to enable mixed precision training')
-parser.add_argument('--fraction_sample_dtataset', type=float, default=1, help='Specifies the fraction of the dataset to use for training')
+parser.add_argument('--fraction_sample_dataset', type=float, default=1, help='Specifies the fraction of the dataset to use for training')
 args = parser.parse_args()
 
 # Initialize and train YOLO_Pose
@@ -32,8 +31,8 @@ yolo_pose_trainer = YOLO_Pose()
 
 yolo_pose_trainer.train(
     dataset_config=args.dataset_config,
-    model_config_folder=args.model_config_folder
-    model_type=args.model_type,
+    model_config_folder=args.model_config_folder,
+    model_config=args.model_type,
     num_epochs=args.num_epochs,
     batch_size=args.batch_size,
     image_size=args.image_size,
@@ -47,5 +46,5 @@ yolo_pose_trainer.train(
     checkpoint_step=args.checkpoint_step,
     output_folder=args.output_folder,
     use_autocast=args.use_autocast,
-    fraction_sample_dtataset=args.fraction_sample_dtataset
+    fraction_sample_dataset=args.fraction_sample_dataset
     )

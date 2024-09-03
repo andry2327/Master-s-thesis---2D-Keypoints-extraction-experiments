@@ -1,5 +1,5 @@
 # Data
-path: /content/drive/MyDrive/Thesis/POV_Surgery_data-YOLO_format
+path: /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data-YOLO_format
 train: images/train  # train images (relative to 'path')
 val: images/val  # val images (relative to 'path')
 

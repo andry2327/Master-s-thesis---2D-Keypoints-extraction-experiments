@@ -7,10 +7,9 @@ import os
 from tqdm import tqdm
 import trimesh
 import matplotlib.pyplot as plt
+import mano
 import pandas
 import numpy as np
-import pickle
-import mano
 import pickle
 from scipy.spatial.transform import Rotation as R
 import scipy.io as sio
@@ -170,6 +169,7 @@ def get_keypoints2d_from_frame(frame_path='', add_visibility=False, dataset_root
     # Change coordinates and project to 2D
     coord_change_mat = np.array([[1., 0., 0.], [0, -1., 0.], [0., 0., -1.]], dtype=np.float32)
     K = np.array([[1198.4395, 0., 960.], [0., 1198.4395, 175.2], [0., 0., 1.]])
+    print(hand_kp @ coord_change_mat.T) # DEBUG
     temp_1 = (hand_kp @ coord_change_mat.T) @ K.T
     p2d = temp_1[:, :2] / temp_1[:, [2]]
 
@@ -184,6 +184,107 @@ def get_keypoints2d_from_frame(frame_path='', add_visibility=False, dataset_root
         new_p2d = np.hstack((new_p2d, visibility))
     
     return new_p2d.astype(np.int32) # IT RETURNS (y, x) coordinates
+
+def get_keypoints3d_from_frame(frame_path='', add_visibility=False, dataset_root_real=None):
+
+    # Extract sequence name and frame number
+    seq_name, frame = os.path.split(frame_path)[-2:]
+    frame = os.path.splitext(frame)[0]
+
+    # Load annotations
+    dataset_root_real = dataset_root_real if dataset_root_real else DATASET_ROOT
+    annot_path = os.path.join(dataset_root_real, 'annotation', seq_name, f'{frame}.pkl')
+
+    if not os.path.exists(annot_path):
+        annot_path = annot_path.replace('color', 'annotation')
+        assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
+        
+    with open(annot_path, 'rb') as f:
+        frame_anno = pickle.load(f)
+
+    # Prepare hand dictionary for the model
+    hand_dict = {k: torch.tensor(v, dtype=torch.float32, device=device) for k, v in frame_anno['mano'].items()}
+    
+    # Get hand vertices and keypoints
+    this_hand = rh_mano(**hand_dict)
+    hand_kp_base = this_hand.joints.squeeze(0).cpu().numpy()
+    hand_finger = this_hand.vertices.squeeze(0).cpu().numpy()[TPID]
+    hand_kp = np.vstack((hand_kp_base, hand_finger))
+    hand_kp = hand_kp @ frame_anno['grab2world_R'] + frame_anno['grab2world_T']
+
+    # Apply camera transformation
+    cam_pose = np.eye(4)
+    cam_pose[:3, :3], cam_pose[:3, 3] = frame_anno['cam_rot'], frame_anno['cam_transl']
+    inv_cam_pose = np.linalg.inv(cam_pose)
+    hand_kp = hand_kp @ inv_cam_pose[:3, :3].T + inv_cam_pose[:3, 3]
+
+    # Change coordinates and project to 2D
+    coord_change_mat = np.array([[1., 0., 0.], [0, -1., 0.], [0., 0., -1.]], dtype=np.float32)
+    K = np.array([[1198.4395, 0., 960.], [0., 1198.4395, 175.2], [0., 0., 1.]])
+    temp_1 = (hand_kp @ coord_change_mat.T)
+
+    new_p2d = temp_1
+    if add_visibility:
+        # add visibility flag
+        visibility = np.ones((temp_1.shape[0], 1))
+        new_p2d = np.hstack((temp_1, visibility))
+    
+    return new_p2d
+
+def visualize_keypoints3d(kps3d, add_visibility=False):
+    K = np.array([[1198.4395, 0., 960.], [0., 1198.4395, 175.2], [0., 0., 1.]])
+    
+    kps3d = kps3d @ K.T
+    p2d = kps3d[:, :2] / kps3d[:, [2]]
+
+    # Clip coordinates to image dimensions
+    new_p2d = np.zeros_like(p2d)
+    new_p2d[:, 1] = np.clip(p2d[:, 0], 0, 1919)  # Image width - 1
+    new_p2d[:, 0] = np.clip(p2d[:, 1], 0, 1079)  # Image height - 1
+
+    if add_visibility:
+        # add visibility flag
+        visibility = np.ones((new_p2d.shape[0], 1))
+        new_p2d = np.hstack((new_p2d, visibility))
+    
+    return new_p2d.astype(np.int32) # IT RETURNS (y, x) coordinates
+
+
+def get_mesh3d_from_frame(frame_path='', add_visibility=False, dataset_root_real=None):
+
+    # Extract sequence name and frame number
+    seq_name, frame = os.path.split(frame_path)[-2:]
+    frame = os.path.splitext(frame)[0]
+
+    # Load annotations
+    dataset_root_real = dataset_root_real if dataset_root_real else DATASET_ROOT
+    annot_path = os.path.join(dataset_root_real, 'annotation', seq_name, f'{frame}.pkl')
+
+    if not os.path.exists(annot_path):
+        annot_path = annot_path.replace('color', 'annotation')
+        assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
+        
+    with open(annot_path, 'rb') as f:
+        frame_anno = pickle.load(f)
+
+    # Prepare hand dictionary for the model
+    hand_dict = {k: torch.tensor(v, dtype=torch.float32, device=device) for k, v in frame_anno['mano'].items()}
+    
+    # Get hand vertices and keypoints
+    this_hand = rh_mano(**hand_dict)
+    hand_vertices = this_hand.vertices.squeeze(0).cpu().numpy()
+
+    # Apply the global transformations (grab2world_R and grab2world_T)
+    hand_vertices = hand_vertices @ frame_anno['grab2world_R'] + frame_anno['grab2world_T']
+    
+    camera_pose = np.eye(4)
+    camera_pose[:3, 3] = frame_anno['cam_transl']
+    camera_pose[:3, :3] = frame_anno['cam_rot']
+    
+    hand_vertices = hand_vertices @ np.linalg.inv(camera_pose)[:3,:3].T + np.linalg.inv(camera_pose)[:3,3]
+
+    return hand_vertices
+
 
 def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     
@@ -257,6 +358,98 @@ def visualize_keypoints2d(frame_path, keypoints2d, dataset_root='', output_resul
 # visualize_keypoints2d(frame_path, keypoints2d)
 
 # print(get_bbox_from_frame(frame_path=frame_path))
+
+def visualize_mesh3d_with_light(frame_path, mesh_vertices, rh_faces_path, dataset_root='',
+                                output_results='', light_direction=np.array([0, 0, -1]), light_intensity=0.7,
+                                custom_str='', show_vertex=True, show_faces=True, face_color_rgb=(0, 255, 0)):
+    """
+    Visualizes the 3D mesh by projecting it onto the 2D image and drawing the faces with shading.
+
+    Parameters:
+    - frame_path (str): Path to the frame (color image).
+    - mesh_vertices (np.ndarray): 3D vertices of the hand mesh.
+    - rh_faces_path (str): Path to the file containing the face connectivity (torch tensor).
+    - dataset_root (str): Root directory of the dataset.
+    - output_results (str): Directory to save the output images.
+    - light_direction (np.ndarray): Direction of the light source.
+    - light_intensity (float): Intensity of the light source.
+    - custom_str (str): A custom string to append to the saved filename.
+    - show_vertex (bool): If True, visualizes the blue circles of each vertex.
+    - show_faces (bool): If True, visualizes the faces (triangles).
+    - face_color_rgb (tuple): RGB color values for the faces (default is green).
+
+    Returns:
+    - img_o (np.ndarray): The image with the 3D mesh (vertices and faces) projected onto it.
+    """
+    
+    # Load the face indices (connections between vertices)
+    rh_faces = torch.load(rh_faces_path, weights_only=True).cpu().numpy()
+
+    # Extract sequence name and frame number
+    seq_name, frame = frame_path.split(os.sep)[-2:]
+    frame = os.path.splitext(frame)[0]  
+    image = cv2.imread(os.path.join(dataset_root, 'color', seq_name, f'{frame}.jpg'))
+    
+    # Camera intrinsics (from the original script)
+    K = np.array([[1198.4395, 0.0000, 960.0000],
+                  [0.0000, 1198.4395, 175.2000],
+                  [0.0000, 0.0000, 1.0000]])
+
+    # Apply the camera intrinsic matrix to project the 3D vertices to 2D
+    coord_change_mat = np.array([[1., 0., 0.], [0, -1., 0.], [0., 0., -1.]], dtype=np.float32)
+    transformed_vertices = mesh_vertices @ coord_change_mat.T
+    projected_vertices = transformed_vertices @ K.T
+    
+    # Normalize by depth
+    p2d = projected_vertices[:, :2] / projected_vertices[:, 2:3]
+
+    # Clip coordinates to image dimensions
+    p2d[:, 0] = np.clip(p2d[:, 0], 0, image.shape[1] - 1)  # X coordinates
+    p2d[:, 1] = np.clip(p2d[:, 1], 0, image.shape[0] - 1)  # Y coordinates
+
+    # Create a copy of the image for drawing
+    img_o = np.copy(image)
+
+    # Normalize light direction
+    light_direction = light_direction / np.linalg.norm(light_direction)
+
+    if show_faces:
+        # Calculate shading for each face based on the light direction
+        shaded_faces = []
+        for face in rh_faces:
+            # Get the vertex positions of the face
+            v0, v1, v2 = transformed_vertices[face]
+
+            # Compute the face normal
+            normal = np.cross(v1 - v0, v2 - v0)
+            normal = normal / np.linalg.norm(normal)
+
+            # Compute the shading based on the dot product with the light direction
+            shading = np.dot(normal, light_direction) * light_intensity
+            shading = np.clip(shading, 0, 1)  # Ensure shading is between 0 and 1
+
+            # Apply shading to the face color
+            shaded_color = tuple(int(channel * shading) for channel in face_color_rgb)[::-1]
+            shaded_faces.append((face, shaded_color))
+        
+        # Draw the shaded faces on the image
+        for face, color in reversed(shaded_faces):
+            pts = p2d[face].astype(np.int32)
+            cv2.polylines(img_o, [pts], isClosed=True, color=color, thickness=1)
+            cv2.fillPoly(img_o, [pts], color=color + (50,))  # Adding transparency
+
+    if show_vertex:
+        # Draw the mesh vertices on the image
+        for vertex in p2d:
+            cv2.circle(img_o, (int(vertex[0]), int(vertex[1])), radius=2, color=(0, 0, 255), thickness=-1)
+    
+    # Save the output image
+    if not os.path.exists(os.path.join(output_results, seq_name)):
+        os.makedirs(os.path.join(output_results, seq_name))
+    img_path = os.path.join(output_results, seq_name, f'{frame}_mesh3d_visual_{custom_str}.jpg')
+    cv2.imwrite(img_path, img_o)
+    
+    return img_o
 
 # Compute Mean Per Joint Position Error (MPJPE)
 # MPJPE measures the average Euclidean distance between predicted joint locations 
@@ -376,7 +569,7 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
         n_pixels = H*W
         count = sum(is_red((p[2], p[1], p[0])) for p in roi) # BGR to RGB when passed to is_red
         bloodiness = count/n_pixels
-        print(f'bloodiness kp {i} = {bloodiness:.2%}')
+        # print(f'bloodiness kp {i} = {bloodiness:.2%}')
         bloodiness_values.append(bloodiness)
     
     return bloodiness_values
@@ -384,7 +577,7 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
 # /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg
 fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
 dataset_root = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
-outs = '/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
+outs = '/home/aidara/Desktop/Thesis_Andrea/Keypoint_2D_extraction_Experiemnts/visualizations'
 
 '''
 boxes = get_boxes_keypoints(fp, dim=50)
@@ -394,6 +587,47 @@ visualize_boxes_keypoints(fp, boxes,
 
 kps = get_keypoints2d_from_frame(fp, add_visibility=False)
 visualize_keypoints2d(fp, kps, dataset_root=dataset_root, output_results=outs)
-'''
+
 
 bloodiness_values = get_keypoints_bloodiness(fp)
+'''
+
+# fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/r_scalpel_1/01365.jpg'
+# fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
+# fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/R2_d_diskplacer_1/02037.jpg'
+
+
+# kps = get_keypoints2d_from_frame(fp, add_visibility=False)
+# print('-'*5)
+# print(kps)
+
+# print('-'*30)
+
+kps3d = get_keypoints3d_from_frame(fp, add_visibility=False)
+print(kps3d)
+torch.save(kps3d, os.path.join(outs, 'kps3d_test.pt'))
+print('-'*5)
+kps2d_proj = visualize_keypoints3d(kps3d)
+print(kps2d_proj)
+
+mesh3d = get_mesh3d_from_frame(fp)
+print(type(mesh3d), mesh3d.shape)
+print(mesh3d)
+torch.save(mesh3d, os.path.join(outs, 'mesh3d_test.pt'))
+
+
+rh_faces_path = '/home/aidara/Desktop/Thesis_Andrea/right_hand_mesh_faces.pt'
+
+visualize_mesh3d_with_light(
+    frame_path=fp,
+    mesh_vertices=mesh3d,
+    rh_faces_path=rh_faces_path,
+    dataset_root=DATASET_ROOT,
+    output_results=outs,
+    show_vertex=True,  # Set to True to show vertices
+    show_faces=True,  # Set to True to show faces
+    face_color_rgb=(0, 255, 0),  # Set face color RGB values
+    light_direction=np.array([0, 0, -1]),  #  Light direction
+    light_intensity=0.9,  # Example light intensity
+    custom_str=''  # Custom string for output file
+)

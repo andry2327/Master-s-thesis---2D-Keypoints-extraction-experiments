@@ -19,10 +19,10 @@ from collections import defaultdict
 import pickle
 import sys
 # change this based on you file system, append "utils" folder where "keypoints2d_utils.py" is stored
-sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
+sys.path.append('/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils')
 from keypoints2d_utils import compute_MPJPE, visualize_keypoints2d
 
-sys.path.append('/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/ultralytics')
+sys.path.append('/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/ultralytics')
 from ultralytics.models import YOLO
 
 from functools import wraps
@@ -82,9 +82,9 @@ class YOLO_Pose:
               training_run_folder_name=None, # Name of the training run. Used for creating a subdirectory within the project folder, where training logs and outputs are stored.
               verbose=False, # Enables verbose output during training, providing detailed logs and progress updates. Useful for debugging and closely monitoring the training process.
               use_autocast=True, # Enables Automatic Mixed Precision (AMP) training, reducing memory usage and possibly speeding up training with minimal impact on accuracy.
-              fraction_sample_dtataset = 1, # Specifies the fraction of the dataset to use for training. Allows for training on a subset of the full dataset, useful for experiments or when resources are limited.
+              fraction_sample_dataset = 1, # Specifies the fraction of the dataset to use for training. Allows for training on a subset of the full dataset, useful for experiments or when resources are limited.
               lr=0.01, # Initial learning rate (i.e. SGD=1E-2, Adam=1E-3) . Adjusting this value is crucial for the optimization process, influencing how rapidly model weights are updated.
-              lrf=0.01, # Final learning rate as a fraction of the initial rate = (lr0 * lrf), used in conjunction with schedulers to adjust the learning rate over time.
+              lrf=0.01, # Final learning rate, used in conjunction with schedulers to adjust the learning rate over time.
               generate_plots=False # Generates and saves plots of training and validation metrics, as well as prediction examples, providing visual insights into model performance and learning progression.
               ):
         
@@ -106,8 +106,9 @@ class YOLO_Pose:
         }
 
         # Load model: https://github.com/orgs/ultralytics/discussions/10211#discussioncomment-9182568
-        model = YOLO(os.path.join(model_config_folder, f'yolov8{model_scale[model_config]}-pose.yaml'))
-
+        yaml_config_path = os.path.join(model_config_folder, f'yolov8{model_scale[model_config]}-pose.yaml')
+        model = YOLO(yaml_config_path).to(device)
+        
         # Train the model
         results = model.train(data=dataset_config, 
                               epochs=num_epochs, 
@@ -122,11 +123,11 @@ class YOLO_Pose:
                               name=training_run_folder_name,
                               verbose=verbose,
                               amp=use_autocast,
-                              fraction=fraction_sample_dtataset,
+                              fraction=fraction_sample_dataset,
                               lr0=lr,
-                              lrf=lrf,
+                              lrf=lrf/lr,
                               plots=generate_plots,
-                              val=False, # DEBUG # disable validation
+                              val=True
                               )
         
         print('🟢 Training finished!')
@@ -221,26 +222,27 @@ output_folder = '/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose'
 
 ##### DEBUG #####
 
-
-# YOLO_Pose().train(
-#     dataset_config='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/utils/config_povsurgery.yaml',
-#     model_config_folder='/content/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config',
-#     model_config='small',
-#     num_epochs=10,
-#     batch_size=1,
-#     image_size=1920,
-#     save=True,
-#     num_workers=2,
-#     training_run_folder_name=training_run_folder_name,
-#     verbose=True,
-#     generate_plots=True,
-#     lr=0.01,
-#     lrf=0.01,
-#     checkpoint_step=1,
-#     output_folder='/content/drive/MyDrive/Thesis/Keypoints2d_extraction/YOLO_Pose',
-#     use_autocast=False,
-#     fraction_sample_dtataset=0.01 # DEBUG
-# )
+'''
+YOLO_Pose().train(
+    dataset_config='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/utils/config_povsurgery.yaml',
+    model_config_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/YOLO_Pose/config',
+    model_config='small',
+    num_epochs=10,
+    batch_size=1,
+    image_size=1920,
+    save=True,
+    num_workers=2,
+    training_run_folder_name=training_run_folder_name,
+    verbose=True,
+    generate_plots=True,
+    lr=0.01,
+    lrf=0.01,
+    checkpoint_step=1,
+    output_folder='/home/aidara/Desktop/Thesis_Andrea/Keypoint_2D_extraction_Experiemnts/output_folder/YOLO_Pose',
+    use_autocast=False,
+    fraction_sample_dataset=0.01 # DEBUG
+)
+'''
 
 '''
 YOLO_Pose().evaluate(
