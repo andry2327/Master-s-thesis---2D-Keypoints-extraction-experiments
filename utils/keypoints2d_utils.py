@@ -169,7 +169,7 @@ def get_keypoints2d_from_frame(frame_path='', add_visibility=False, dataset_root
     # Change coordinates and project to 2D
     coord_change_mat = np.array([[1., 0., 0.], [0, -1., 0.], [0., 0., -1.]], dtype=np.float32)
     K = np.array([[1198.4395, 0., 960.], [0., 1198.4395, 175.2], [0., 0., 1.]])
-    print(hand_kp @ coord_change_mat.T) # DEBUG
+    # print(hand_kp @ coord_change_mat.T) # DEBUG
     temp_1 = (hand_kp @ coord_change_mat.T) @ K.T
     p2d = temp_1[:, :2] / temp_1[:, [2]]
 
@@ -603,31 +603,31 @@ bloodiness_values = get_keypoints_bloodiness(fp)
 
 # print('-'*30)
 
-kps3d = get_keypoints3d_from_frame(fp, add_visibility=False)
-print(kps3d)
-torch.save(kps3d, os.path.join(outs, 'kps3d_test.pt'))
-print('-'*5)
-kps2d_proj = visualize_keypoints3d(kps3d)
-print(kps2d_proj)
+# kps3d = get_keypoints3d_from_frame(fp, add_visibility=False)
+# print(kps3d)
+# torch.save(kps3d, os.path.join(outs, 'kps3d_test.pt'))
+# print('-'*5)
+# kps2d_proj = visualize_keypoints3d(kps3d)
+# print(kps2d_proj)
 
-mesh3d = get_mesh3d_from_frame(fp)
-print(type(mesh3d), mesh3d.shape)
-print(mesh3d)
-torch.save(mesh3d, os.path.join(outs, 'mesh3d_test.pt'))
+# mesh3d = get_mesh3d_from_frame(fp)
+# print(type(mesh3d), mesh3d.shape)
+# print(mesh3d)
+# torch.save(mesh3d, os.path.join(outs, 'mesh3d_test.pt'))
 
 
-rh_faces_path = '/home/aidara/Desktop/Thesis_Andrea/right_hand_mesh_faces.pt'
+# rh_faces_path = '/home/aidara/Desktop/Thesis_Andrea/right_hand_mesh_faces.pt'
 
-visualize_mesh3d_with_light(
-    frame_path=fp,
-    mesh_vertices=mesh3d,
-    rh_faces_path=rh_faces_path,
-    dataset_root=DATASET_ROOT,
-    output_results=outs,
-    show_vertex=True,  # Set to True to show vertices
-    show_faces=True,  # Set to True to show faces
-    face_color_rgb=(0, 255, 0),  # Set face color RGB values
-    light_direction=np.array([0, 0, -1]),  #  Light direction
-    light_intensity=0.9,  # Example light intensity
-    custom_str=''  # Custom string for output file
-)
+# visualize_mesh3d_with_light(
+#     frame_path=fp,
+#     mesh_vertices=mesh3d,
+#     rh_faces_path=rh_faces_path,
+#     dataset_root=DATASET_ROOT,
+#     output_results=outs,
+#     show_vertex=True,  # Set to True to show vertices
+#     show_faces=True,  # Set to True to show faces
+#     face_color_rgb=(0, 255, 0),  # Set face color RGB values
+#     light_direction=np.array([0, 0, -1]),  #  Light direction
+#     light_intensity=0.9,  # Example light intensity
+#     custom_str=''  # Custom string for output file
+# )
