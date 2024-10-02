@@ -13,6 +13,7 @@ import numpy as np
 import pickle
 from scipy.spatial.transform import Rotation as R
 import scipy.io as sio
+import re
 
 device = 'cpu' # cuda, cpu
 batch_size = 1
@@ -146,7 +147,9 @@ def get_keypoints2d_from_frame(frame_path='', add_visibility=False, dataset_root
     if not os.path.exists(annot_path):
         annot_path = annot_path.replace('color', 'annotation')
         assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
-        
+    
+    pattern = r' \(\d+\)' # fix 
+    annot_path = re.sub(pattern, '', annot_path) # fix
     with open(annot_path, 'rb') as f:
         frame_anno = pickle.load(f)
 
@@ -198,7 +201,9 @@ def get_keypoints3d_from_frame(frame_path='', add_visibility=False, dataset_root
     if not os.path.exists(annot_path):
         annot_path = annot_path.replace('color', 'annotation')
         assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
-        
+    
+    pattern = r' \(\d+\)' # fix 
+    annot_path = re.sub(pattern, '', annot_path) # fix
     with open(annot_path, 'rb') as f:
         frame_anno = pickle.load(f)
 
@@ -229,7 +234,7 @@ def get_keypoints3d_from_frame(frame_path='', add_visibility=False, dataset_root
         visibility = np.ones((temp_1.shape[0], 1))
         new_p2d = np.hstack((temp_1, visibility))
     
-    return new_p2d
+    return new_p2d # shape = (21, 3)
 
 def visualize_keypoints3d(kps3d, add_visibility=False):
     K = np.array([[1198.4395, 0., 960.], [0., 1198.4395, 175.2], [0., 0., 1.]])
@@ -263,7 +268,9 @@ def get_mesh3d_from_frame(frame_path='', add_visibility=False, dataset_root_real
     if not os.path.exists(annot_path):
         annot_path = annot_path.replace('color', 'annotation')
         assert os.path.exists(annot_path), f"Path {annot_path} does not exist."
-        
+    
+    pattern = r' \(\d+\)' # fix 
+    annot_path = re.sub(pattern, '', annot_path) # fix
     with open(annot_path, 'rb') as f:
         frame_anno = pickle.load(f)
 
@@ -303,7 +310,9 @@ def get_bbox_from_frame(frame_path='', list_as_out_format=False):
     if not os.path.exists(mask_path):
         mask_path = mask_path.replace('color', 'mask')
         assert os.path.exists(mask_path), f"Path {mask_path} does not exist."
-    
+        
+    pattern = r' \(\d+\)' # fix 
+    mask_path = re.sub(pattern, '', mask_path) # fix
     mask_image = cv2.imread(mask_path)
     mask = np.all(mask_image == HAND_COLOR, axis=-1) # Find the pixels that match the hand color
     coords = np.argwhere(mask) # Get the coordinates of the matching pixels
@@ -575,22 +584,21 @@ def get_keypoints_bloodiness(frame_path, dim_boxes=50):
     return bloodiness_values
 
 # /home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg
-fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
+fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00689.jpg'#'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg' #'/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs/d_diskplacer_1/00145_kps2d_visual.jpg'
 dataset_root = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data'
-outs = '/home/aidara/Desktop/Thesis_Andrea/Keypoint_2D_extraction_Experiemnts/visualizations'
+outs = '/home/aidara/Desktop'
 
-'''
-boxes = get_boxes_keypoints(fp, dim=50)
-visualize_boxes_keypoints(fp, boxes, 
-                          output_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
-                          )
+
+# boxes = get_boxes_keypoints(fp, dim=50)
+# visualize_boxes_keypoints(fp, boxes, 
+#                           output_folder='/home/aidara/Desktop/Thesis_Andrea/Github_repos/Master-s-thesis---2D-Keypoints-extraction-experiments/utils/outs'
+#                          )
 
 kps = get_keypoints2d_from_frame(fp, add_visibility=False)
 visualize_keypoints2d(fp, kps, dataset_root=dataset_root, output_results=outs)
 
 
-bloodiness_values = get_keypoints_bloodiness(fp)
-'''
+# bloodiness_values = get_keypoints_bloodiness(fp)
 
 # fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/r_scalpel_1/01365.jpg'
 # fp = '/home/aidara/Desktop/Thesis_Andrea/data/POV_Surgery_data/color/d_diskplacer_1/00145.jpg'
